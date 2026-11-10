@@ -69,3 +69,18 @@ não é preciso publicar de novo.
   `https://zqthktwzjrvggopuxyfv.supabase.co/auth/v1/callback`; Client ID e Secret vão no provedor Google do Supabase.
 - **Apple**: exige o Apple Developer Program. No iPhone o login usa a folha nativa (`expo-apple-authentication`);
   no navegador usa um Services ID + chave .p8 configurados no provedor Apple do Supabase.
+
+## Importação de faturas e extratos
+
+Tela **Importar** (aba Lançamentos, Início e Ajustes). Lê no próprio aparelho, mostra uma prévia e só então grava.
+
+- Fatura do cartão Itaú (PDF): compras nacionais e internacionais, IOF, tarifas e parcelas; confere cada subtotal
+  e o total da fatura. Parcela n entra no orçamento n−1 meses depois da compra.
+- Extrato da conta Itaú (PDF): confere com os saldos diários; o saldo final vira o saldo da conta; pagamento de
+  fatura e PIX para o próprio titular são transferências internas (não contam como despesa).
+- Fatura do Nubank (CSV): vencimento vem do nome do arquivo; a fatura aberta entra como previsto estimado.
+- Cada lançamento tem uma chave estável (`external_id`): reimportar o mesmo arquivo não duplica.
+- Categoria: regra aprendida → palavras-chave → categoria do banco. Ao mudar a categoria de uma compra, o app
+  aplica às compras iguais sem categoria e guarda a regra para as próximas importações.
+- PDFs usam o pdf.js servido de `public/pdfjs` (copiado de `node_modules` no `postinstall`); no iPhone, por
+  enquanto, só CSV.

@@ -98,6 +98,11 @@ export default function Ajustes() {
             <Text style={{ fontSize: 16, color: t.ink }}>Categorias e limites</Text>
           </Pressable>
         </Link>
+        <Link href="/importar" asChild>
+          <Pressable accessibilityRole="link" style={{ height: 48, justifyContent: "center", borderBottomWidth: 1, borderBottomColor: t.line }}>
+            <Text style={{ fontSize: 16, color: t.ink }}>Importar fatura ou extrato</Text>
+          </Pressable>
+        </Link>
         <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={{ height: 48, justifyContent: "center" }}>
           <Text style={{ fontSize: 16, color: t.neg }}>{f.isDemo ? "Sair da demonstração" : "Sair"}</Text>
         </Pressable>

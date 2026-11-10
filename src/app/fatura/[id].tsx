@@ -24,7 +24,8 @@ export default function FaturaDetalhe() {
 
   const { accountId, month } = p.creditCardStatement;
   const purchases = f.transactions
-    .filter((tx) => tx.accountId === accountId && tx.statementMonth === month && tx.amount < 0)
+    // Compras e estornos da fatura (pagamento da fatura anterior não entra).
+    .filter((tx) => tx.accountId === accountId && tx.statementMonth === month && !tx.isCardPayment)
     .sort((a, b) => (a.date < b.date ? 1 : -1));
   const total = purchases.reduce((a, tx) => a - tx.amount, 0);
   const diff = -p.amount - total;

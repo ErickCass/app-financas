@@ -45,3 +45,5 @@ web-preview/
 dist/
 .env*
 !.env.example
+.run-local.mts
+public/pdfjs/

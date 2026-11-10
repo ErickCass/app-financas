@@ -6,6 +6,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Account, Budget, Category, CategoryHistory, Planned, Transaction } from "@/domain/types";
 import { todayISO } from "@/domain/dates";
+import { rulePattern } from "@/import/categorize";
+import type { ImportPlan } from "@/import/plan";
 import { useAuth } from "./auth";
 import * as demo from "./demo";
 import * as remote from "./remote";
@@ -31,6 +33,12 @@ interface FinanceActions {
   setBudgetLimit(categoryId: string, month: string, limit: number): Promise<void>;
   addTransaction(t: Omit<Transaction, "id">): Promise<void>;
   setAccountBalance(accountId: string, balance: number): Promise<void>;
+  /** Grava uma importação já revisada; cria a conta se `account` for "nova". */
+  importStatement(args: {
+    plan: ImportPlan;
+    fileName: string;
+    account: Account | { create: { name: string; kind: Account["kind"]; closingDay?: number; dueDay?: number; last4?: string } };
+  }): Promise<{ inserted: number; plannedId: string | null; accountId: string }>;
 }
 
 const DEMO_DATA: FinanceData = {
@@ -116,11 +124,32 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       error,
       isDemo,
       reload,
-      setTransactionCategory: (transactionId: string, categoryId: string) =>
-        optimistic(
-          (d) => ({ ...d, transactions: d.transactions.map((t) => (t.id === transactionId ? { ...t, categoryId } : t)) }),
-          () => remote.updateTransactionCategory(transactionId, categoryId),
-        ),
+      setTransactionCategory: (transactionId: string, categoryId: string) => {
+        // Aprende: compras da mesma loja ainda sem categoria recebem a mesma, e as próximas importações também.
+        const tx = data.transactions.find((t) => t.id === transactionId);
+        const pattern = tx ? rulePattern(tx.description) : "";
+        const siblings =
+          tx && pattern.length >= 3
+            ? data.transactions.filter((t) => t.id !== tx.id && !t.categoryId && !t.isCardPayment && rulePattern(t.description) === pattern).map((t) => t.id)
+            : [];
+        const changed = new Set([transactionId, ...siblings]);
+        return optimistic(
+          (d) => ({ ...d, transactions: d.transactions.map((t) => (changed.has(t.id) ? { ...t, categoryId } : t)) }),
+          async () => {
+            await remote.updateTransactionCategory(transactionId, categoryId);
+            await remote.setCategoryForMany(siblings, categoryId);
+            if (tx) await remote.learnRule(tx.description, categoryId, userId!);
+          },
+        );
+      },
+      importStatement: async ({ plan, fileName, account }: Parameters<FinanceActions["importStatement"]>[0]) => {
+        if (isDemo || !userId) throw new Error("Entre com sua conta para importar arquivos.");
+        const target = "create" in account ? await remote.createAccount(account.create, userId) : account;
+        const payFrom = data.accounts.find((a) => a.kind === "checking")?.id ?? null;
+        const res = await remote.saveImport({ userId, account: target, payFromAccountId: payFrom, fileName, plan, today: data.today });
+        await reload();
+        return { ...res, accountId: target.id };
+      },
       setBudgetLimit: (categoryId: string, month: string, limit: number) =>
         optimistic(
           (d) => {

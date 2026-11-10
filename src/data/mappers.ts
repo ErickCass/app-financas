@@ -37,6 +37,8 @@ export interface TransactionRow {
   source: TransactionSource;
   is_card_payment: boolean;
   statement_month: string | null;
+  installment_number?: number | null;
+  installment_total?: number | null;
 }
 export interface PlannedRow {
   id: string;
@@ -94,6 +96,8 @@ export const transactionFromRow = (r: TransactionRow): Transaction => ({
   statementMonth: r.statement_month ? r.statement_month.slice(0, 7) : undefined,
   plannedId: r.planned_id ?? undefined,
   isCardPayment: r.is_card_payment || undefined,
+  installment:
+    r.installment_number && r.installment_total ? { n: r.installment_number, total: r.installment_total } : undefined,
 });
 
 export const transactionToRow = (t: Omit<Transaction, "id">, userId: string) => ({
@@ -107,6 +111,8 @@ export const transactionToRow = (t: Omit<Transaction, "id">, userId: string) => 
   source: t.source,
   is_card_payment: Boolean(t.isCardPayment),
   statement_month: t.statementMonth ? `${t.statementMonth}-01` : null,
+  installment_number: t.installment?.n ?? null,
+  installment_total: t.installment?.total ?? null,
 });
 
 export const plannedFromRow = (r: PlannedRow): Planned | null => {

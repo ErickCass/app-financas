@@ -41,8 +41,10 @@ export interface Transaction {
   statementMonth?: string;
   /** Previsto que esta transação "baixou", se houver. */
   plannedId?: string;
-  /** Pagamento de fatura: transferência interna, não conta como despesa. */
+  /** Transferência interna (pagamento de fatura, PIX entre contas próprias): não conta como despesa. */
   isCardPayment?: boolean;
+  /** Compra parcelada: parcela n de total. */
+  installment?: { n: number; total: number };
 }
 
 export type PlannedStatus = "pending" | "paid" | "overdue";

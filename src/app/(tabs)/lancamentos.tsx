@@ -72,15 +72,26 @@ export default function Lancamentos() {
     <Screen
       title="Lançamentos"
       right={
-        <Link href="/novo" asChild>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel="Novo lançamento"
-            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: "center", justifyContent: "center" }}
-          >
-            <Text style={{ color: t.onAccent, fontSize: 26, lineHeight: 28, fontWeight: "400" }}>+</Text>
-          </Pressable>
-        </Link>
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+          <Link href="/importar" asChild>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Importar fatura ou extrato"
+              style={{ height: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: t.accentSoft, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text style={{ color: t.accent, fontSize: 15, fontWeight: "600" }}>Importar</Text>
+            </Pressable>
+          </Link>
+          <Link href="/novo" asChild>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Novo lançamento"
+              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text style={{ color: t.onAccent, fontSize: 26, lineHeight: 28, fontWeight: "400" }}>+</Text>
+            </Pressable>
+          </Link>
+        </View>
       }
     >
       <TextInput

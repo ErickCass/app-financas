@@ -81,7 +81,7 @@ export default function Inicio() {
             [
               ["1", "Informe o saldo da conta corrente", "/ajustes"],
               ["2", "Defina os limites das categorias", "/limites"],
-              ["3", "Lance suas primeiras despesas", "/novo"],
+              ["3", "Importe uma fatura ou extrato", "/importar"],
             ] as const
           ).map(([n, label, href]) => (
             <Link key={n} href={href} asChild>

@@ -18,6 +18,7 @@ const CARD_PAYMENT_PATTERNS = [
   /transfer[eê]ncia\s+para\s+cart[aã]o/i,
   /ted\s+fatura/i,
   /doc\s+fatura/i,
+  /pag(amento)?\s+boleto\s+ita[uú]\s+unibanco/i, // fatura Itaú paga por boleto
   /fatura.*(latam|mastercard|visa|ita[uú]|nubank|inter|bradesco|santander|c6|xp|next|neon)/i,
 ];
 
