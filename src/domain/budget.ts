@@ -8,13 +8,14 @@ import { daysInMonth, dayOfMonth, monthOf } from "./dates";
  * - ritmo:    deve fechar entre 85% e 100% (azul)
  * - vai:      ainda não passou, mas a previsão passa (amarelo)
  * - estourou: já passou do limite (vermelho)
+ * E "semlimite" (cinza): categoria sem limite no mês; mostra o gasto, sem alerta.
  */
-export type PaceStatus = "sobra" | "ritmo" | "vai" | "estourou";
+export type PaceStatus = "sobra" | "ritmo" | "vai" | "estourou" | "semlimite";
 
 export const RITMO_THRESHOLD = 0.85;
 
 export function paceStatus(spent: Cents, limit: Cents, projected: Cents): PaceStatus {
-  if (limit <= 0) return spent > 0 ? "estourou" : "sobra";
+  if (limit <= 0) return "semlimite";
   if (spent > limit) return "estourou";
   if (projected > limit) return "vai";
   if (projected >= limit * RITMO_THRESHOLD) return "ritmo";
@@ -58,17 +59,15 @@ export function dailyAllowance(spent: Cents, limit: Cents, day: number, totalDay
   return Math.max(Math.floor((limit - spent) / remainingDays), 0);
 }
 
-/** Gasto de uma categoria no mês: compras por data da compra, sem pagamento de fatura. */
+/**
+ * Gasto de uma categoria no mês: compras por data da compra, menos estornos e reembolsos
+ * da mesma categoria; transferências internas (pagamento de fatura) não entram.
+ */
 export function categorySpent(transactions: Transaction[], categoryId: string, month: string): Cents {
-  return transactions
-    .filter(
-      (t) =>
-        t.categoryId === categoryId &&
-        monthOf(t.date) === month &&
-        t.amount < 0 &&
-        !t.isCardPayment,
-    )
+  const net = transactions
+    .filter((t) => t.categoryId === categoryId && monthOf(t.date) === month && !t.isCardPayment)
     .reduce((acc, t) => acc - t.amount, 0);
+  return Math.max(net, 0);
 }
 
 export interface CategoryBudgetView {
@@ -82,7 +81,7 @@ export interface CategoryBudgetView {
   transactions: Transaction[];
 }
 
-const statusOrder: Record<PaceStatus, number> = { estourou: 0, vai: 1, ritmo: 2, sobra: 3 };
+const statusOrder: Record<PaceStatus, number> = { estourou: 0, vai: 1, ritmo: 2, sobra: 3, semlimite: 4 };
 
 /** Monta a tela de Orçamento: uma linha por categoria variável, ordenada por risco. */
 export function buildBudgetView(params: {
@@ -104,7 +103,7 @@ export function buildBudgetView(params: {
       const spent = categorySpent(params.transactions, category.id, month);
       const projected = projectMonthEnd(spent, day, total, hist);
       const transactions = params.transactions
-        .filter((t) => t.categoryId === category.id && monthOf(t.date) === month && t.amount < 0 && !t.isCardPayment)
+        .filter((t) => t.categoryId === category.id && monthOf(t.date) === month && !t.isCardPayment)
         .sort((a, b) => (a.date < b.date ? 1 : -1));
       return {
         category,
@@ -120,6 +119,7 @@ export function buildBudgetView(params: {
     .sort((a, b) => {
       const byStatus = statusOrder[a.status] - statusOrder[b.status];
       if (byStatus !== 0) return byStatus;
+      if (a.status === "semlimite") return b.spent - a.spent;
       const ratioA = a.limit ? a.spent / a.limit : 0;
       const ratioB = b.limit ? b.spent / b.limit : 0;
       return ratioB - ratioA;

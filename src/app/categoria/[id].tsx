@@ -60,15 +60,21 @@ export default function CategoriaDetalhe() {
         </View>
         <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
           <Text style={{ fontSize: 40, fontWeight: "600", color: t.ink, letterSpacing: -1 }}>{formatBRL(v.spent)}</Text>
-          <Text style={{ fontSize: 15, color: t.ink2 }}>de {formatBRL(v.limit)}</Text>
+          <Text style={{ fontSize: 15, color: t.ink2 }}>{v.limit ? `de ${formatBRL(v.limit)}` : "sem limite"}</Text>
         </View>
-        <ProgressBar height={12} fill={v.limit ? v.spent / v.limit : 1} color={color} marker={v.expectedShareToday} />
+        {v.status === "semlimite" ? (
+          <ProgressBar height={12} fill={0} />
+        ) : (
+          <ProgressBar height={12} fill={v.spent / v.limit} color={color} marker={v.expectedShareToday} />
+        )}
         <Text style={{ fontSize: 15, fontWeight: "600", color: v.status === "estourou" ? "#B42318" : t.ink }}>
           {v.status === "estourou"
             ? `${formatBRL(over)} acima do limite, com ${totalDays - day} dias pela frente`
             : v.status === "vai"
               ? `Previsto ${formatBRL(v.projected)}. Para fechar no limite: ${formatBRL(v.dailyAllowance)}/dia`
-              : `${STATUS_LABEL[v.status]} · previsto ${formatBRL(v.projected)}`}
+              : v.status === "semlimite"
+                ? `Sem limite definido · previsto ${formatBRL(v.projected)} no mês`
+                : `${STATUS_LABEL[v.status]} · previsto ${formatBRL(v.projected)}`}
         </Text>
       </Card>
 

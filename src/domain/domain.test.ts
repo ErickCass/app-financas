@@ -48,9 +48,9 @@ describe("as quatro cores do orçamento", () => {
   it("verde quando deve sobrar", () => {
     expect(paceStatus(30_000, limit, 75_000)).toBe("sobra");
   });
-  it("categoria sem limite e com gasto conta como estourada", () => {
-    expect(paceStatus(1_000, 0, 1_000)).toBe("estourou");
-    expect(paceStatus(0, 0, 0)).toBe("sobra");
+  it("categoria sem limite fica neutra, mesmo com gasto", () => {
+    expect(paceStatus(1_000, 0, 1_000)).toBe("semlimite");
+    expect(paceStatus(0, 0, 0)).toBe("semlimite");
   });
 });
 
@@ -108,7 +108,7 @@ const tx = (p: Partial<Transaction> & Pick<Transaction, "id" | "date" | "amount"
 });
 
 describe("gasto da categoria", () => {
-  it("soma compras pela data da compra e ignora pagamento de fatura e estornos", () => {
+  it("soma compras pela data da compra, desconta estornos e ignora pagamento de fatura", () => {
     const rows = [
       tx({ id: "1", date: "2026-11-09", amount: -38_600 }),
       tx({ id: "2", date: "2026-11-07", amount: -9_490 }),
@@ -116,7 +116,9 @@ describe("gasto da categoria", () => {
       tx({ id: "4", date: "2026-11-12", amount: -231_044, isCardPayment: true }),
       tx({ id: "5", date: "2026-11-08", amount: 2_000 }), // estorno
     ];
-    expect(categorySpent(rows, "restaurantes", "2026-11")).toBe(48_090);
+    expect(categorySpent(rows, "restaurantes", "2026-11")).toBe(46_090);
+    // estorno maior que as compras não deixa o gasto negativo
+    expect(categorySpent([tx({ id: "6", date: "2026-11-01", amount: 5_000 })], "restaurantes", "2026-11")).toBe(0);
   });
 
   it("ordena a tela de orçamento por risco", () => {

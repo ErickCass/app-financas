@@ -49,6 +49,7 @@ export const STATUS_COLOR: Record<PaceStatus, string> = {
   ritmo: "#2F6FD6",
   vai: "#E8B10C",
   estourou: "#D23B2A",
+  semlimite: "#8E8E93",
 };
 
 export const STATUS_LABEL: Record<PaceStatus, string> = {
@@ -56,6 +57,7 @@ export const STATUS_LABEL: Record<PaceStatus, string> = {
   ritmo: "No ritmo",
   vai: "Vai estourar",
   estourou: "Estourou",
+  semlimite: "Sem limite",
 };
 
 export const font = {

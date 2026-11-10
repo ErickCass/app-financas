@@ -47,7 +47,8 @@ export function PaceChart(props: {
 
   let stepPath = `M${x(1)} ${y(0)}`;
   for (const s of steps) stepPath += ` V${y(s.value).toFixed(1)} H${x(Math.min(s.day + 1, props.today)).toFixed(1)}`;
-  const crossing = steps.find((s) => s.value > props.limit);
+  const hasLimit = props.limit > 0;
+  const crossing = hasLimit ? steps.find((s) => s.value > props.limit) : undefined;
   const habPath = habitual.map((h, i) => `${i ? "L" : "M"}${x(h.day).toFixed(1)} ${y(h.value).toFixed(1)}`).join(" ");
 
   return (
@@ -59,10 +60,14 @@ export function PaceChart(props: {
     >
       <Svg width={width} height={height}>
         <Line x1={8} y1={bottom} x2={width - 8} y2={bottom} stroke={t.line} />
+{hasLimit ? (
+          <>
         <Line x1={8} y1={y(props.limit)} x2={width - 8} y2={y(props.limit)} stroke={t.accent} strokeWidth={1.5} strokeDasharray="4 4" />
         <SvgText fontFamily="-apple-system, system-ui, Inter, sans-serif" x={width - 8} y={y(props.limit) - 6} fontSize={11} fill={t.accent} fontWeight="600" textAnchor="end">
           {`limite ${formatBRL(props.limit, { noCents: true })}`}
         </SvgText>
+          </>
+        ) : null}
         {habPath ? <Path d={habPath} fill="none" stroke={t.ink3} strokeWidth={2} strokeLinecap="round" /> : null}
         <Path
           d={`M${x(props.today)} ${y(acc)} L${x(props.totalDays)} ${y(props.projected)}`}

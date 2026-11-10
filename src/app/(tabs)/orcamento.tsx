@@ -17,12 +17,17 @@ export default function Orcamento() {
   const total = daysInMonth(month);
   const remainingDays = Math.max(total - day, 1);
 
-  const limit = view.reduce((a, v) => a + v.limit, 0);
-  const spent = view.reduce((a, v) => a + v.spent, 0);
-  const projected = view.reduce((a, v) => a + v.projected, 0);
+  const limited = view.filter((v) => v.status !== "semlimite");
+  const limit = limited.reduce((a, v) => a + v.limit, 0);
+  const spent = limited.reduce((a, v) => a + v.spent, 0);
+  const projected = limited.reduce((a, v) => a + v.projected, 0);
+  const unlimitedSpent = view.filter((v) => v.status === "semlimite").reduce((a, v) => a + v.spent, 0);
   const free = Math.max(limit - spent, 0);
   const totalStatus = spent > limit ? "estourou" : projected > limit ? "vai" : projected >= limit * 0.85 ? "ritmo" : "sobra";
   const attention = view.filter((v) => v.status === "estourou" || v.status === "vai");
+  // Categorias sem limite só aparecem como linha se tiveram gasto; as demais viram um lembrete.
+  const rows = view.filter((v) => v.status !== "semlimite" || v.spent > 0);
+  const idle = view.filter((v) => v.status === "semlimite" && v.spent === 0);
   const willOverrun = view.filter((v) => v.status === "vai");
 
   return (
@@ -36,6 +41,9 @@ export default function Orcamento() {
           <Text style={{ fontSize: 40, fontWeight: "600", color: t.ink, letterSpacing: -1 }}>{formatBRL(spent)}</Text>
           <Text style={{ fontSize: 15, color: t.ink2 }}>de {formatBRL(limit)}</Text>
         </View>
+        {unlimitedSpent > 0 ? (
+          <Text style={{ fontSize: 13, color: t.ink2 }}>+ {formatBRL(unlimitedSpent)} em categorias sem limite</Text>
+        ) : null}
         <ProgressBar height={12} fill={limit ? spent / limit : 0} color={STATUS_COLOR[totalStatus]} marker={day / total} />
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text style={{ fontSize: 14, color: t.ink }}>
@@ -127,7 +135,7 @@ export default function Orcamento() {
         Por categoria
       </SectionTitle>
       <Card style={{ gap: 0, paddingVertical: 4 }}>
-        {view.map((v, i) => (
+        {rows.map((v, i) => (
           <Link key={v.category.id} href={`/categoria/${v.category.id}`} asChild>
             <Pressable
               accessibilityRole="link"
@@ -137,7 +145,7 @@ export default function Orcamento() {
                 alignItems: "center",
                 gap: 12,
                 paddingVertical: 12,
-                borderBottomWidth: i < view.length - 1 ? 1 : 0,
+                borderBottomWidth: i < rows.length - 1 ? 1 : 0,
                 borderBottomColor: t.line,
               }}
             >
@@ -145,10 +153,15 @@ export default function Orcamento() {
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
                   <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, fontWeight: "600", color: t.ink }}>{v.category.name}</Text>
                   <Text numberOfLines={1} style={{ flexShrink: 0, fontSize: 13, color: t.ink2 }}>
-                    {formatBRL(v.spent, { noCents: true })} <Text style={{ color: t.ink3 }}>/</Text> {formatBRL(v.limit, { noCents: true })}
+                    {formatBRL(v.spent, { noCents: true })} <Text style={{ color: t.ink3 }}>/</Text>{" "}
+                    {v.status === "semlimite" ? "sem limite" : formatBRL(v.limit, { noCents: true })}
                   </Text>
                 </View>
-                <ProgressBar fill={v.limit ? v.spent / v.limit : 1} color={STATUS_COLOR[v.status]} marker={v.expectedShareToday} />
+                {v.status === "semlimite" ? (
+                  <ProgressBar fill={0} />
+                ) : (
+                  <ProgressBar fill={v.spent / v.limit} color={STATUS_COLOR[v.status]} marker={v.expectedShareToday} />
+                )}
               </View>
               <Text
                 style={{
@@ -159,12 +172,25 @@ export default function Orcamento() {
                   color: v.status === "estourou" ? "#B42318" : t.ink,
                 }}
               >
-                {v.limit ? Math.round((v.spent / v.limit) * 100) : 0}%
+                {v.limit ? `${Math.round((v.spent / v.limit) * 100)}%` : "–"}
               </Text>
               <ChevronRight color={t.ink3} />
             </Pressable>
           </Link>
         ))}
+        {idle.length > 0 ? (
+          <Link href="/limites" asChild>
+            <Pressable
+              accessibilityRole="link"
+              style={{ paddingVertical: 12, borderTopWidth: rows.length ? 1 : 0, borderTopColor: t.line, flexDirection: "row", alignItems: "center", gap: 12 }}
+            >
+              <Text style={{ flex: 1, fontSize: 14, color: t.ink2, lineHeight: 20 }}>
+                Sem limite e sem gasto: {idle.map((v) => v.category.name).join(", ")}.{" "}
+                <Text style={{ color: t.accent, fontWeight: "600" }}>Definir limites</Text>
+              </Text>
+            </Pressable>
+          </Link>
+        ) : null}
       </Card>
     </Screen>
   );

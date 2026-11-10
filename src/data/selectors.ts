@@ -46,8 +46,10 @@ export function useMonthSummary() {
       transactions: f.transactions,
       planned: f.planned,
     });
-    const spentTotal = view.reduce((a, v) => a + v.spent, 0);
-    const projectedTotal = view.reduce((a, v) => a + v.projected, 0);
+    // Totais do orçamento: só categorias com limite (as sem limite não têm contra o que comparar).
+    const limited = view.filter((v) => v.status !== "semlimite");
+    const spentTotal = limited.reduce((a, v) => a + v.spent, 0);
+    const projectedTotal = limited.reduce((a, v) => a + v.projected, 0);
     return { ...summary, yearEnd, trajectory, limitsTotal, spentTotal, projectedTotal };
   }, [f, view]);
 }

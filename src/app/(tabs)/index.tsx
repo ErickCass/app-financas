@@ -223,7 +223,7 @@ export default function Inicio() {
         )}
       </Card>
 
-      {top && top.status !== "sobra" ? (
+      {top && (top.status === "estourou" || top.status === "vai" || top.status === "ritmo") ? (
         <Card style={{ borderWidth: 1, borderColor: t.accentSoft }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <SparkIcon color={t.accent} size={18} />
