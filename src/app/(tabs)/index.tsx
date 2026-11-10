@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Link } from "expo-router";
 import Svg, { Circle, Path } from "react-native-svg";
+import { useAuth } from "@/data/auth";
 import { useFinance } from "@/data/store";
 import { useBudgetView, useMonthSummary } from "@/data/selectors";
 import { formatBRL } from "@/domain/money";
@@ -19,7 +20,10 @@ export default function Inicio() {
   const f = useFinance();
   const s = useMonthSummary();
   const view = useBudgetView();
+  const auth = useAuth();
   const [hidden, setHidden] = useState(false);
+  const initials = f.isDemo ? "EA" : (auth.email ?? "?").slice(0, 2).toUpperCase();
+  const isEmpty = !f.isDemo && f.transactions.length === 0 && f.budgets.length === 0;
   const money = (c: number, o?: Parameters<typeof formatBRL>[1]) => (hidden ? "R$ •••" : formatBRL(c, o));
 
   const d = new Date(`${f.today}T12:00:00`);
@@ -36,8 +40,11 @@ export default function Inicio() {
   return (
     <Screen>
       <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 4 }}>
-        <View style={{ gap: 2 }}>
-          <Text style={{ fontSize: 13, fontWeight: "600", color: t.ink2, letterSpacing: 0.3 }}>{dateLabel}</Text>
+        <View style={{ gap: 2, flex: 1, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "600", color: t.ink2, letterSpacing: 0.3 }}>
+            {dateLabel}
+            {f.isDemo ? " · DEMONSTRAÇÃO" : ""}
+          </Text>
           <Text accessibilityRole="header" style={{ fontSize: 34, fontWeight: "700", color: t.ink, letterSpacing: -0.5 }}>
             Início
           </Text>
@@ -55,15 +62,40 @@ export default function Inicio() {
               {hidden ? <Path d="M3 3l18 18" /> : null}
             </Svg>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Perfil e ajustes"
-            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: "center", justifyContent: "center" }}
-          >
-            <Text style={{ color: t.onAccent, fontWeight: "600", fontSize: 15 }}>EA</Text>
-          </Pressable>
+          <Link href="/ajustes" asChild>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Perfil e ajustes"
+              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text style={{ color: t.onAccent, fontWeight: "600", fontSize: 15 }}>{initials}</Text>
+            </Pressable>
+          </Link>
         </View>
       </View>
+
+      {isEmpty ? (
+        <Card style={{ gap: 0, paddingBottom: 8 }}>
+          <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink, paddingBottom: 4 }}>Comece por aqui</Text>
+          {(
+            [
+              ["1", "Informe o saldo da conta corrente", "/ajustes"],
+              ["2", "Defina os limites das categorias", "/limites"],
+              ["3", "Lance suas primeiras despesas", "/novo"],
+            ] as const
+          ).map(([n, label, href]) => (
+            <Link key={n} href={href} asChild>
+              <Pressable accessibilityRole="link" style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: t.line }}>
+                <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: t.accent, alignItems: "center", justifyContent: "center" }}>
+                  <Text style={{ color: t.onAccent, fontWeight: "600" }}>{n}</Text>
+                </View>
+                <Text style={{ flex: 1, fontSize: 16, color: t.ink }}>{label}</Text>
+                <Text style={{ color: t.ink3, fontSize: 18 }}>›</Text>
+              </Pressable>
+            </Link>
+          ))}
+        </Card>
+      ) : null}
 
       <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -203,7 +235,7 @@ export default function Inicio() {
             <Link href={`/categoria/${top.category.id}`} asChild>
               <PrimaryButton label="Ver transações" />
             </Link>
-            <Link href="/orcamento" asChild>
+            <Link href="/limites" asChild>
               <PrimaryButton label="Ajustar limite" soft />
             </Link>
           </View>

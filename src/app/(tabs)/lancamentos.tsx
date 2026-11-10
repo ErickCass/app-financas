@@ -69,7 +69,20 @@ export default function Lancamentos() {
   const pendingIn = f.planned.filter((p) => p.status !== "paid" && monthOf(p.dueDate) === month && p.amount > 0);
 
   return (
-    <Screen title="Lançamentos">
+    <Screen
+      title="Lançamentos"
+      right={
+        <Link href="/novo" asChild>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Novo lançamento"
+            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: "center", justifyContent: "center" }}
+          >
+            <Text style={{ color: t.onAccent, fontSize: 26, lineHeight: 28, fontWeight: "400" }}>+</Text>
+          </Pressable>
+        </Link>
+      }
+    >
       <TextInput
         value={query}
         onChangeText={setQuery}

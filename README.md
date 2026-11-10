@@ -12,6 +12,15 @@ npm test             # testes da lógica financeira
 npm run typecheck
 ```
 
+## Configuração do Supabase
+
+1. Copie `.env.example` para `.env` e preencha a URL e a chave **publishable** do projeto
+   (Project Settings › API). Nunca use a chave `service_role`/secret no app.
+2. Rode o SQL de `supabase/migrations/` no SQL Editor do Supabase.
+3. Em **Authentication › Emails › Magic Link**, inclua o código no corpo do e-mail
+   (por exemplo `Seu código: {{ .Token }}`), para o login por código de 6 dígitos funcionar.
+4. Sem as variáveis de ambiente, o app abre direto no modo demonstração.
+
 ## Estrutura
 
 ```
@@ -26,7 +35,10 @@ src/
     projection.ts      saldo projetado do mês e do ano, despesas e renda
     dedup.ts           remoção de duplicados (Apple Pay + extrato + Open Finance)
     cardPayment.ts     pagamento de fatura não conta como despesa
-  data/                camada de dados (hoje: demonstração em memória; próximo: Supabase)
+  data/                camada de dados: Supabase quando logado, demonstração quando não
+    auth.tsx           login por e-mail com código de 6 dígitos
+    remote.ts          leitura e gravação no Supabase (RLS por usuário)
+    mappers.ts         conversão banco ↔ domínio, com testes
   ui/                  tema, componentes, gráficos
 supabase/migrations/   estrutura do banco com segurança por usuário (RLS)
 ```
@@ -42,6 +54,6 @@ supabase/migrations/   estrutura do banco com segurança por usuário (RLS)
 
 ## Próximos passos (fase 1)
 
-1. Ligar o Supabase: aplicar `supabase/migrations`, login com Apple, Google e e-mail.
-2. Importação de extratos: portar os leitores de PDF e Excel do Itaú do app antigo, com os testes.
-3. Lançamento manual e contas fixas.
+1. Importação de extratos: portar os leitores de PDF e Excel do Itaú do app antigo, com os testes.
+2. Contas fixas (regras recorrentes que geram os lançamentos previstos de cada mês).
+3. Login com Apple e Google (exige configurar os provedores no Supabase).

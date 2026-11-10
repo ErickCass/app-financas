@@ -60,6 +60,20 @@ export default function Orcamento() {
         </View>
       </Card>
 
+      {limit === 0 ? (
+        <Card style={{ alignItems: "center", gap: 10 }}>
+          <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>Defina seus limites</Text>
+          <Text style={{ fontSize: 14, color: t.ink2, textAlign: "center", lineHeight: 20 }}>
+            Diga quanto pode gastar por mês em cada categoria. O Finia acompanha o ritmo e avisa antes de estourar.
+          </Text>
+          <Link href="/limites" asChild>
+            <Pressable accessibilityRole="link" style={{ height: 44, paddingHorizontal: 20, borderRadius: 12, backgroundColor: t.accent, justifyContent: "center" }}>
+              <Text style={{ color: t.onAccent, fontWeight: "600" }}>Definir limites</Text>
+            </Pressable>
+          </Link>
+        </Card>
+      ) : null}
+
       {attention.length ? (
         <Card style={{ gap: 0, borderWidth: 1.5, borderColor: "#F2DA8A", paddingBottom: 8 }}>
           <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink, paddingBottom: 4 }}>
@@ -103,7 +117,13 @@ export default function Orcamento() {
         </Card>
       ) : null}
 
-      <SectionTitle right={<Text style={{ fontSize: 15, fontWeight: "600", color: t.accent }}>Editar limites</Text>}>
+      <SectionTitle
+        right={
+          <Link href="/limites" style={{ fontSize: 15, fontWeight: "600", color: t.accent }}>
+            Editar limites
+          </Link>
+        }
+      >
         Por categoria
       </SectionTitle>
       <Card style={{ gap: 0, paddingVertical: 4 }}>

@@ -42,7 +42,14 @@ export default function CategoriaDetalhe() {
 
   return (
     <Screen>
-      <NavBar back="Orçamento" right={<Text style={{ color: t.accent, fontSize: 17 }}>Editar limite</Text>} />
+      <NavBar
+        back="Orçamento"
+        right={
+          <Link href="/limites" style={{ color: t.accent, fontSize: 17 }}>
+            Editar limite
+          </Link>
+        }
+      />
 
       <Card>
         <View>
