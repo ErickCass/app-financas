@@ -3,5 +3,6 @@
 import { copyFileSync, mkdirSync } from "node:fs";
 const from = "node_modules/pdfjs-dist/legacy/build";
 mkdirSync("public/pdfjs", { recursive: true });
-for (const f of ["pdf.min.mjs", "pdf.worker.min.mjs"]) copyFileSync(`${from}/${f}`, `public/pdfjs/${f}`);
+// Salvos como .js: a hospedagem do Expo não publica arquivos .mjs.
+for (const f of ["pdf.min", "pdf.worker.min"]) copyFileSync(`${from}/${f}.mjs`, `public/pdfjs/${f}.js`);
 console.log("pdf.js copiado para public/pdfjs");

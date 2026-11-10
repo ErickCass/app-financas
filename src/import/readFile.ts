@@ -49,8 +49,8 @@ function loadPdfJs(): Promise<PdfJs> {
     const origin = window.location.origin;
     // import() dinâmico fora do alcance do bundler: o arquivo não faz parte do pacote do app.
     const dynamicImport = new Function("u", "return import(u)") as (u: string) => Promise<PdfJs>;
-    pdfjsPromise = dynamicImport(`${origin}/pdfjs/pdf.min.mjs`).then((mod) => {
-      mod.GlobalWorkerOptions.workerSrc = `${origin}/pdfjs/pdf.worker.min.mjs`;
+    pdfjsPromise = dynamicImport(`${origin}/pdfjs/pdf.min.js`).then((mod) => {
+      mod.GlobalWorkerOptions.workerSrc = `${origin}/pdfjs/pdf.worker.min.js`;
       return mod;
     });
     pdfjsPromise.catch(() => (pdfjsPromise = null));
