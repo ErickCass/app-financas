@@ -89,13 +89,18 @@ export function projectYearEnd(params: {
   monthEnd: Cents;
   recurringPlanned: { amount: Cents }[]; // previstos mensais recorrentes
   monthlyVariableLimits: Cents;
+  /** Previstos avulsos já conhecidos (ex.: fatura que vence mês que vem). */
+  planned?: Pick<Planned, "dueDate" | "amount" | "status">[];
 }): Cents {
   const month = monthOf(params.today);
   const year = month.slice(0, 4);
   let balance = params.monthEnd;
   for (let m = addMonths(month, 1); m.slice(0, 4) === year; m = addMonths(m, 1)) {
     const net = params.recurringPlanned.reduce((a, p) => a + p.amount, 0);
-    balance += net - params.monthlyVariableLimits;
+    const oneOff = (params.planned ?? [])
+      .filter((p) => p.status !== "paid" && monthOf(p.dueDate) === m)
+      .reduce((a, p) => a + p.amount, 0);
+    balance += net + oneOff - params.monthlyVariableLimits;
   }
   return balance;
 }

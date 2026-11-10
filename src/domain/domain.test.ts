@@ -192,6 +192,22 @@ describe("resumo do mês (números do mockup)", () => {
     ).toBe(842_015 + 1_512_000 - 298_711 - 662_000);
   });
 
+  it("projeção do ano desconta a fatura que vence nos próximos meses", () => {
+    expect(
+      projectYearEnd({
+        today: "2026-11-10",
+        monthEnd: -1_054_917,
+        recurringPlanned: [],
+        monthlyVariableLimits: 500_000,
+        planned: [
+          { dueDate: "2026-12-01", amount: -815_652, status: "pending" },
+          { dueDate: "2026-11-20", amount: -10_000, status: "pending" }, // mês atual: já está no monthEnd
+          { dueDate: "2027-01-05", amount: -99_999, status: "pending" }, // ano que vem
+        ],
+      }),
+    ).toBe(-1_054_917 - 815_652 - 500_000);
+  });
+
   it("conhece o tamanho dos meses", () => {
     expect(daysInMonth("2026-02")).toBe(28);
     expect(daysInMonth("2028-02")).toBe(29);

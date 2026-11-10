@@ -39,6 +39,7 @@ export function useMonthSummary() {
       monthEnd: summary.projectedMonthEnd,
       recurringPlanned: f.recurringMonthly,
       monthlyVariableLimits: limitsTotal,
+      planned: f.planned,
     });
     const trajectory = balanceTrajectory({
       today: f.today,
