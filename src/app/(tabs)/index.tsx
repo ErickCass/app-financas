@@ -123,6 +123,7 @@ export default function Inicio() {
         <FlowRow
           title="Despesas"
           total={money(expTotal)}
+          empty={expTotal === 0}
           a={{ label: "Pagas", value: money(s.expensesPaid), share: expTotal ? s.expensesPaid / expTotal : 0, color: t.neg }}
           b={{ label: "A pagar", value: money(s.expensesPending), color: t.negSoft }}
         />
@@ -130,6 +131,7 @@ export default function Inicio() {
         <FlowRow
           title="Renda"
           total={money(incTotal)}
+          empty={incTotal === 0}
           a={{ label: "Recebida", value: money(s.incomeReceived), share: incTotal ? s.incomeReceived / incTotal : 0, color: t.pos }}
           b={{ label: "A receber", value: money(s.incomePending), color: t.posSoft }}
         />
@@ -250,9 +252,12 @@ function FlowRow({
   total,
   a,
   b,
+  empty,
 }: {
   title: string;
   total: string;
+  /** Sem valores no mês: mostra só o trilho cinza em vez de uma barra cheia. */
+  empty?: boolean;
   a: { label: string; value: string; share: number; color: string };
   b: { label: string; value: string; color: string };
 }) {
@@ -263,7 +268,7 @@ function FlowRow({
         <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>{title}</Text>
         <Text style={{ fontSize: 15, color: t.ink2 }}>{total} no mês</Text>
       </View>
-      <ProgressBar segments={[{ value: a.share, color: a.color }, { value: 1 - a.share, color: b.color }]} />
+      <ProgressBar segments={empty ? [] : [{ value: a.share, color: a.color }, { value: 1 - a.share, color: b.color }]} />
       <View style={{ flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap", rowGap: 4, columnGap: 12 }}>
         {[a, b].map((x) => (
           <View key={x.label} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
