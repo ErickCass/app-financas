@@ -3,7 +3,7 @@
  * o banco só devolve linhas do usuário logado.
  */
 import { addMonths, monthOf } from "@/domain/dates";
-import type { Account, Budget, Transaction } from "@/domain/types";
+import type { Account, Budget, Category, Transaction } from "@/domain/types";
 import { rulePattern, type LearnedRule } from "@/import/categorize";
 import type { ImportPlan } from "@/import/plan";
 import { buildHistory } from "@/domain/history";
@@ -289,4 +289,29 @@ export async function setCategoryForMany(ids: string[], categoryId: string) {
     await supabase.from("transactions").update({ category_id: categoryId, category_source: "rule" }).in("id", ids),
     "aplicar a categoria às compras parecidas",
   );
+}
+
+// ---------------------------------------------------------------- categorias
+
+function categoryError(e: { message: string; code?: string } | null, what: string) {
+  if (!e) return;
+  if (e.code === "23505") throw new Error("Já existe uma categoria com esse nome.");
+  throw new Error(`Falha ao ${what}: ${e.message}`);
+}
+
+export async function createCategory(c: { name: string; kind: Category["kind"]; color: string }, userId: string): Promise<Category> {
+  const res = await supabase.from("categories").insert({ user_id: userId, ...c }).select("*").single();
+  categoryError(res.error, "criar a categoria");
+  return categoryFromRow(res.data as CategoryRow);
+}
+
+export async function updateCategory(id: string, patch: { name?: string; kind?: Category["kind"] }) {
+  const res = await supabase.from("categories").update(patch).eq("id", id);
+  categoryError(res.error, "salvar a categoria");
+}
+
+/** Arquivar: some das telas e das sugestões; os lançamentos continuam, sem categoria. */
+export async function archiveCategory(id: string) {
+  check(await supabase.from("transactions").update({ category_id: null }).eq("category_id", id), "liberar os lançamentos");
+  check(await supabase.from("categories").update({ archived: true }).eq("id", id), "arquivar a categoria");
 }

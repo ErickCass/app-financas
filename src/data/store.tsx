@@ -33,6 +33,9 @@ interface FinanceActions {
   setBudgetLimit(categoryId: string, month: string, limit: number): Promise<void>;
   addTransaction(t: Omit<Transaction, "id">): Promise<void>;
   setAccountBalance(accountId: string, balance: number): Promise<void>;
+  createCategory(name: string, kind: Category["kind"]): Promise<void>;
+  updateCategory(id: string, patch: { name?: string; kind?: Category["kind"] }): Promise<void>;
+  archiveCategory(id: string): Promise<void>;
   /** Grava uma importação já revisada; cria a conta se `account` for "nova". */
   importStatement(args: {
     plan: ImportPlan;
@@ -64,6 +67,9 @@ const EMPTY: FinanceData = {
   history: [],
   recurringMonthly: [],
 };
+
+/** Cores para categorias novas (as padrão já usam algumas). */
+const CATEGORY_COLORS = ["#0E4A5C", "#C2410C", "#E7A36B", "#4D8A9A", "#C98BB9", "#8C8C94", "#7C6FB0", "#2E9E5B", "#2F6FD6", "#B45309", "#0F766E", "#9D174D", "#4338CA", "#65A30D"];
 
 const Ctx = createContext<(FinanceData & FinanceActions) | null>(null);
 
@@ -141,6 +147,36 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             if (tx) await remote.learnRule(tx.description, categoryId, userId!);
           },
         );
+      },
+      createCategory: async (name: string, kind: Category["kind"]) => {
+        const used = new Set(data.categories.map((c) => c.color));
+        const color = CATEGORY_COLORS.find((c) => !used.has(c)) ?? CATEGORY_COLORS[data.categories.length % CATEGORY_COLORS.length]!;
+        const clean = name.trim();
+        if (!clean) throw new Error("Dê um nome para a categoria.");
+        if (data.categories.some((c) => c.name.toLowerCase() === clean.toLowerCase())) throw new Error("Já existe uma categoria com esse nome.");
+        if (isDemo) {
+          setData((d) => ({ ...d, categories: [...d.categories, { id: `demo-cat-${Date.now()}`, name: clean, kind, color }] }));
+          return;
+        }
+        const created = await remote.createCategory({ name: clean, kind, color }, userId!);
+        setData((d) => ({ ...d, categories: [...d.categories, created] }));
+      },
+      updateCategory: async (id: string, patch: { name?: string; kind?: Category["kind"] }) => {
+        const name = patch.name?.trim();
+        if (patch.name !== undefined && !name) throw new Error("Dê um nome para a categoria.");
+        if (name && data.categories.some((c) => c.id !== id && c.name.toLowerCase() === name.toLowerCase()))
+          throw new Error("Já existe uma categoria com esse nome.");
+        const clean = { ...patch, ...(name ? { name } : {}) };
+        if (!isDemo) await remote.updateCategory(id, clean);
+        setData((d) => ({ ...d, categories: d.categories.map((c) => (c.id === id ? { ...c, ...clean } : c)) }));
+      },
+      archiveCategory: async (id: string) => {
+        if (!isDemo) await remote.archiveCategory(id);
+        setData((d) => ({
+          ...d,
+          categories: d.categories.filter((c) => c.id !== id),
+          transactions: d.transactions.map((t) => (t.categoryId === id ? { ...t, categoryId: null } : t)),
+        }));
       },
       importStatement: async ({ plan, fileName, account }: Parameters<FinanceActions["importStatement"]>[0]) => {
         if (isDemo || !userId) throw new Error("Entre com sua conta para importar arquivos.");

@@ -90,13 +90,16 @@ export function buildBudgetView(params: {
   budgets: Budget[];
   transactions: Transaction[];
   history: CategoryHistory[];
+  /** Tipos de categoria incluídos (padrão: só variáveis). */
+  kinds?: Category["kind"][];
 }): CategoryBudgetView[] {
+  const kinds = params.kinds ?? ["variable"];
   const month = monthOf(params.today);
   const day = dayOfMonth(params.today);
   const total = daysInMonth(month);
 
   return params.categories
-    .filter((c) => c.kind === "variable")
+    .filter((c) => kinds.includes(c.kind))
     .map((category) => {
       const limit = params.budgets.find((b) => b.categoryId === category.id && b.month === month)?.limit ?? 0;
       const hist = params.history.find((h) => h.categoryId === category.id);

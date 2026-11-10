@@ -15,7 +15,7 @@ export default function CategoriaDetalhe() {
   const t = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const f = useFinance();
-  const view = useBudgetView();
+  const view = useBudgetView("all");
   const v = view.find((x) => x.category.id === id);
   const [openTx, setOpenTx] = useState<string | null>(null);
 
@@ -36,7 +36,7 @@ export default function CategoriaDetalhe() {
   const crossedOn = overrunDay(v.transactions, v.limit);
   const accountName = (accountId: string) => f.accounts.find((a) => a.id === accountId)?.name ?? "";
   const byKind = countBy(v.transactions, (tx) => f.accounts.find((a) => a.id === tx.accountId)?.kind ?? "");
-  const others = f.categories.filter((c) => c.kind === "variable" && c.id !== v.category.id);
+  const others = f.categories.filter((c) => c.kind !== "income" && c.id !== v.category.id);
   const statementPlanned = (tx: Transaction) =>
     f.planned.find((p) => p.creditCardStatement?.accountId === tx.accountId && p.creditCardStatement.month === tx.statementMonth);
 

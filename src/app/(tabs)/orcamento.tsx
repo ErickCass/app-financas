@@ -12,6 +12,7 @@ export default function Orcamento() {
   const t = useTheme();
   const f = useFinance();
   const view = useBudgetView();
+  const fixed = useBudgetView("fixed");
   const month = monthOf(f.today);
   const day = dayOfMonth(f.today);
   const total = daysInMonth(month);
@@ -126,7 +127,7 @@ export default function Orcamento() {
       <SectionTitle
         right={
           <Link href="/limites" style={{ fontSize: 15, fontWeight: "600", color: t.accent }}>
-            Editar limites
+            Editar categorias
           </Link>
         }
       >
@@ -190,6 +191,46 @@ export default function Orcamento() {
           </Link>
         ) : null}
       </Card>
+
+      {fixed.length > 0 ? (
+        <>
+          <SectionTitle>Contas fixas</SectionTitle>
+          <Card style={{ gap: 0, paddingVertical: 4 }}>
+            {fixed.map((v, i) => (
+              <Link key={v.category.id} href={`/categoria/${v.category.id}`} asChild>
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel={`${v.category.name}: ${formatBRL(v.spent)} no mês. Ver transações`}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                    paddingVertical: 12,
+                    borderBottomWidth: i < fixed.length - 1 ? 1 : 0,
+                    borderBottomColor: t.line,
+                  }}
+                >
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: v.category.color }} />
+                  <View style={{ flex: 1 }}>
+                    <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: "600", color: t.ink }}>{v.category.name}</Text>
+                    <Text style={{ fontSize: 13, color: t.ink2 }}>
+                      {v.transactions.length} {v.transactions.length === 1 ? "lançamento" : "lançamentos"}
+                      {v.limit ? ` · previsto ${formatBRL(v.limit, { noCents: true })}` : ""}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: v.status === "estourou" ? "#B42318" : t.ink }}>
+                    {formatBRL(v.spent)}
+                  </Text>
+                  <ChevronRight color={t.ink3} />
+                </Pressable>
+              </Link>
+            ))}
+          </Card>
+          <Text style={{ fontSize: 13, color: t.ink2, lineHeight: 18, paddingHorizontal: 4 }}>
+            Contas fixas (condomínio, escola) não entram no ritmo dos gastos variáveis.
+          </Text>
+        </>
+      ) : null}
     </Screen>
   );
 }

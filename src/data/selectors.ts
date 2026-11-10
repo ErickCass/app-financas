@@ -4,7 +4,8 @@ import { balanceTrajectory, buildMonthSummary, projectYearEnd } from "@/domain/p
 import { monthOf } from "@/domain/dates";
 import { useFinance } from "./store";
 
-export function useBudgetView() {
+/** Orçamento por categoria. Padrão: gastos variáveis; passe "fixed" para as contas fixas. */
+export function useBudgetView(kind: "variable" | "fixed" | "all" = "variable") {
   const f = useFinance();
   return useMemo(
     () =>
@@ -14,8 +15,9 @@ export function useBudgetView() {
         budgets: f.budgets,
         transactions: f.transactions,
         history: f.history,
+        kinds: kind === "all" ? ["variable", "fixed"] : [kind],
       }),
-    [f.today, f.categories, f.budgets, f.transactions, f.history],
+    [f.today, f.categories, f.budgets, f.transactions, f.history, kind],
   );
 }
 
