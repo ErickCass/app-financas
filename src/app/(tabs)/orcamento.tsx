@@ -85,9 +85,7 @@ export default function Orcamento() {
       {attention.length ? (
         <Card style={{ gap: 0, borderWidth: 1.5, borderColor: "#F2DA8A", paddingBottom: 8 }}>
           <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink, paddingBottom: 4 }}>
-            {willOverrun.length
-              ? `No ritmo atual, ${willOverrun.length} ${willOverrun.length === 1 ? "categoria vai" : "categorias vão"} estourar`
-              : "Categorias acima do limite"}
+            {attentionTitle(attention.length - willOverrun.length, willOverrun.length)}
           </Text>
           {attention.map((v, i) => (
             <Link key={v.category.id} href={`/categoria/${v.category.id}`} asChild>
@@ -194,4 +192,14 @@ export default function Orcamento() {
       </Card>
     </Screen>
   );
+}
+
+/** "1 categoria estourou e 2 vão estourar" */
+function attentionTitle(over: number, will: number): string {
+  const n = (k: number) => `${k} ${k === 1 ? "categoria" : "categorias"}`;
+  const overText = over ? `${n(over)} ${over === 1 ? "estourou" : "estouraram"}` : "";
+  const willText = will ? `${will === 1 ? "vai" : "vão"} estourar no ritmo atual` : "";
+  if (over && will) return `${overText} e ${will} ${willText}`;
+  if (over) return overText;
+  return `${n(will)} ${willText}`;
 }
