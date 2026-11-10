@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Finia",
+    "slug": "app-financas",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "appfinancas",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.erickalmeida.financas",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Usamos o Face ID para proteger seus dados financeiros."
+      }
+    },
+    "android": {
+      "package": "com.erickalmeida.financas",
+      "adaptiveIcon": {
+        "backgroundColor": "#0E4A5C",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "asyncRoutes": false
+        }
+      ],
+      "expo-secure-store",
+      "expo-local-authentication"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
