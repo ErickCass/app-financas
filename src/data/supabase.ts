@@ -7,13 +7,17 @@ const key = process.env.EXPO_PUBLIC_SUPABASE_KEY;
 
 /** false quando o app foi gerado sem as variáveis (ex.: prévia de demonstração). */
 export const supabaseConfigured = Boolean(url && key);
+export const supabaseUrl = url ?? "https://invalid.local";
+export const supabaseKey = key ?? "missing";
 
-export const supabase = createClient(url ?? "https://invalid.local", key ?? "missing", {
+export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: Platform.OS === "web",
+    // PKCE: o login social volta com ?code= e o app troca pela sessão.
+    flowType: "pkce",
   },
 });
 

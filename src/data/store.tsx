@@ -89,6 +89,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [isDemo, userId]);
 
   useEffect(() => {
+    // Carregamento inicial dos dados (busca assíncrona); o setState síncrono é só o "carregando".
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void reload();
   }, [reload]);
 

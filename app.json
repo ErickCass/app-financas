@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.erickalmeida.financas",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Usamos o Face ID para proteger seus dados financeiros."
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.erickalmeida.financas",
@@ -38,7 +39,9 @@
         }
       ],
       "expo-secure-store",
-      "expo-local-authentication"
+      "expo-local-authentication",
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": false

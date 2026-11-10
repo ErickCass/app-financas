@@ -57,3 +57,15 @@ supabase/migrations/   estrutura do banco com segurança por usuário (RLS)
 1. Importação de extratos: portar os leitores de PDF e Excel do Itaú do app antigo, com os testes.
 2. Contas fixas (regras recorrentes que geram os lançamentos previstos de cada mês).
 3. Login com Apple e Google (exige configurar os provedores no Supabase).
+
+## Login com Google e Apple
+
+Os botões aparecem sozinhos quando o provedor é ligado no Supabase (Authentication › Sign In / Providers);
+não é preciso publicar de novo.
+
+- **URL Configuration** do Supabase: Site URL `https://erick0303-app-financas.expo.app`; Redirect URLs
+  `https://erick0303-app-financas.expo.app/**` e `appfinancas://**` (app do iPhone).
+- **Google**: cliente OAuth do tipo "Aplicativo da Web" no Google Cloud, com a URI de redirecionamento
+  `https://zqthktwzjrvggopuxyfv.supabase.co/auth/v1/callback`; Client ID e Secret vão no provedor Google do Supabase.
+- **Apple**: exige o Apple Developer Program. No iPhone o login usa a folha nativa (`expo-apple-authentication`);
+  no navegador usa um Services ID + chave .p8 configurados no provedor Apple do Supabase.
