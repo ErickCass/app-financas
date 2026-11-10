@@ -18,7 +18,7 @@ npm run typecheck
    (Project Settings › API). Nunca use a chave `service_role`/secret no app.
 2. Rode o SQL de `supabase/migrations/` no SQL Editor do Supabase.
 3. Em **Authentication › Emails › Magic Link**, inclua o código no corpo do e-mail
-   (por exemplo `Seu código: {{ .Token }}`), para o login por código de 6 dígitos funcionar.
+   (por exemplo `Seu código: {{ .Token }}`), para o login por código funcionar (o Supabase envia 8 dígitos por padrão).
 4. Sem as variáveis de ambiente, o app abre direto no modo demonstração.
 
 ## Estrutura
@@ -36,7 +36,7 @@ src/
     dedup.ts           remoção de duplicados (Apple Pay + extrato + Open Finance)
     cardPayment.ts     pagamento de fatura não conta como despesa
   data/                camada de dados: Supabase quando logado, demonstração quando não
-    auth.tsx           login por e-mail com código de 6 dígitos
+    auth.tsx           login por e-mail com código
     remote.ts          leitura e gravação no Supabase (RLS por usuário)
     mappers.ts         conversão banco ↔ domínio, com testes
   ui/                  tema, componentes, gráficos

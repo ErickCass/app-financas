@@ -53,7 +53,7 @@ export default function Entrar() {
           </Text>
           <Text style={{ fontSize: 16, color: t.ink2, lineHeight: 22 }}>
             {step === "email"
-              ? "Informe seu e-mail. Enviamos um código de 6 dígitos; não há senha para lembrar."
+              ? "Informe seu e-mail. Enviamos um código de acesso; não há senha para lembrar."
               : `Digite o código enviado para ${email.trim()}.`}
           </Text>
         </View>
@@ -95,19 +95,19 @@ export default function Entrar() {
           <View style={{ gap: 12 }}>
             <TextInput
               value={code}
-              onChangeText={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))}
-              placeholder="000000"
+              onChangeText={(v) => setCode(v.replace(/\D/g, "").slice(0, 10))}
+              placeholder="00000000"
               placeholderTextColor={t.ink3}
               keyboardType="number-pad"
               textContentType="oneTimeCode"
               autoComplete="one-time-code"
-              accessibilityLabel="Código de 6 dígitos"
-              maxLength={6}
+              accessibilityLabel="Código de acesso"
+              maxLength={10}
               style={[input, { fontSize: 28, letterSpacing: 8, textAlign: "center" }]}
             />
             <MainButton
               label="Entrar"
-              disabled={code.length !== 6 || busy}
+              disabled={code.length < 6 || busy}
               busy={busy}
               onPress={() => run(() => auth.verifyCode(email, code))}
             />
