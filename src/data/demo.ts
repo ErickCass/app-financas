@@ -99,6 +99,10 @@ export const transactions: Transaction[] = [
   t("2026-11-07", "Cinemark", -12_000, "lazer"),
   t("2026-11-08", "Cacau Show", -1_980, "lazer", "nubank", { source: "apple_pay" }),
   t("2026-11-08", "Livraria Cultura", -17_020, "lazer"),
+  // Sem categoria (para a tela Classificar): mês passado, na conta
+  t("2026-10-14", "PIX TRANSF JOAO L14/10", -15_000, null, "itau"),
+  t("2026-10-28", "PIX TRANSF JOAO L28/10", -15_000, null, "itau"),
+  t("2026-10-19", "Feira Livre Vila Mariana", -4_500, null, "itau"),
   // Casa e serviços: R$ 250,00
   t("2026-11-09", "PIX — M. Souza", -25_000, "casa", "itau"),
   // Contas fixas já pagas

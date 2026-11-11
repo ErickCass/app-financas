@@ -51,7 +51,12 @@ export default function Lancamentos() {
         subtitle: `${catName(tx.categoryId)} · ${accName(tx.accountId)}${tx.source === "apple_pay" ? " · Apple Pay" : ""}`,
         amount: tx.amount,
         status: tx.amount > 0 ? "recebido" : "pago",
-        href: tx.categoryId && f.categories.find((c) => c.id === tx.categoryId)?.kind === "variable" ? `/categoria/${tx.categoryId}` : undefined,
+        // Com categoria: abre a categoria (lá dá para trocar). Sem categoria: vai para Classificar.
+        href: !tx.categoryId
+          ? "/classificar"
+          : f.categories.find((c) => c.id === tx.categoryId)?.kind !== "income"
+            ? `/categoria/${tx.categoryId}`
+            : undefined,
       }));
     let all = filter === "previstos" ? planned : filter === "realizados" ? real : [...planned, ...real];
     const q = normalizeDescription(query);
@@ -65,6 +70,7 @@ export default function Lancamentos() {
     return [...m.entries()];
   }, [rows]);
 
+  const uncategorized = f.transactions.filter((tx) => !tx.categoryId && !tx.isCardPayment).length;
   const pendingOut = f.planned.filter((p) => p.status !== "paid" && monthOf(p.dueDate) === month && p.amount < 0);
   const pendingIn = f.planned.filter((p) => p.status !== "paid" && monthOf(p.dueDate) === month && p.amount > 0);
 
@@ -121,6 +127,23 @@ export default function Lancamentos() {
           </Pressable>
         ))}
       </View>
+
+      {uncategorized > 0 ? (
+        <Link href="/classificar" asChild>
+          <Pressable
+            accessibilityRole="link"
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, backgroundColor: t.accentSoft }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: "600", color: t.accent }}>
+                {uncategorized} sem categoria
+              </Text>
+              <Text style={{ fontSize: 13, color: t.ink2 }}>Classifique por loja de uma vez</Text>
+            </View>
+            <Text style={{ fontSize: 15, fontWeight: "600", color: t.accent }}>Classificar ›</Text>
+          </Pressable>
+        </Link>
+      ) : null}
 
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Card style={{ flex: 1, padding: 14, gap: 4 }}>

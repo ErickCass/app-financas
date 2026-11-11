@@ -19,7 +19,8 @@ export interface LearnedRule {
 
 /** Padrão usado nas regras aprendidas: descrição normalizada, sem números soltos. */
 export function rulePattern(description: string): string {
-  return normalizeDescription(description)
+  // Data colada no nome ("JOAO L14/10") ou parcela ("05/12") não faz parte da loja.
+  return normalizeDescription(description.replace(/\d{2}\/\d{2}(\/\d{2,4})?/g, " "))
     .replace(/\b\d+\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();

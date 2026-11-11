@@ -315,3 +315,9 @@ export async function archiveCategory(id: string) {
   check(await supabase.from("transactions").update({ category_id: null }).eq("category_id", id), "liberar os lançamentos");
   check(await supabase.from("categories").update({ archived: true }).eq("id", id), "arquivar a categoria");
 }
+
+/** Marca como transferência interna (não conta como despesa nem renda). */
+export async function markInternal(ids: string[]) {
+  if (ids.length === 0) return;
+  check(await supabase.from("transactions").update({ is_card_payment: true, category_id: null }).in("id", ids), "marcar como transferência");
+}

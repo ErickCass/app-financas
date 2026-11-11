@@ -33,6 +33,10 @@ interface FinanceActions {
   setBudgetLimit(categoryId: string, month: string, limit: number): Promise<void>;
   addTransaction(t: Omit<Transaction, "id">): Promise<void>;
   setAccountBalance(accountId: string, balance: number): Promise<void>;
+  /** Classifica um grupo de lançamentos de uma vez (e ensina a regra pela descrição). */
+  categorizeMany(ids: string[], categoryId: string): Promise<void>;
+  /** Marca lançamentos como transferência entre contas próprias (não contam no orçamento). */
+  markInternal(ids: string[]): Promise<void>;
   createCategory(name: string, kind: Category["kind"]): Promise<void>;
   updateCategory(id: string, patch: { name?: string; kind?: Category["kind"] }): Promise<void>;
   archiveCategory(id: string): Promise<void>;
@@ -146,6 +150,24 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             await remote.setCategoryForMany(siblings, categoryId);
             if (tx) await remote.learnRule(tx.description, categoryId, userId!);
           },
+        );
+      },
+      categorizeMany: (ids: string[], categoryId: string) => {
+        const set = new Set(ids);
+        const first = data.transactions.find((t) => set.has(t.id));
+        return optimistic(
+          (d) => ({ ...d, transactions: d.transactions.map((t) => (set.has(t.id) ? { ...t, categoryId } : t)) }),
+          async () => {
+            await remote.setCategoryForMany(ids, categoryId);
+            if (first) await remote.learnRule(first.description, categoryId, userId!);
+          },
+        );
+      },
+      markInternal: (ids: string[]) => {
+        const set = new Set(ids);
+        return optimistic(
+          (d) => ({ ...d, transactions: d.transactions.map((t) => (set.has(t.id) ? { ...t, isCardPayment: true, categoryId: null } : t)) }),
+          () => remote.markInternal(ids),
         );
       },
       createCategory: async (name: string, kind: Category["kind"]) => {

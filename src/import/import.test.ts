@@ -242,6 +242,7 @@ describe("categorias", () => {
     const rules = [{ pattern: rulePattern("Kennedy Boutique D"), categoryId: "res" }];
     expect(suggestCategory({ description: "KENNEDY BOUTIQUE D", amount: -100 }, CATEGORIES, rules)?.categoryId).toBe("res");
     expect(rulePattern("DROGASIL4632")).toBe(rulePattern("Drogasil4632"));
+    expect(rulePattern("PIX TRANSF JOAO L14/10")).toBe(rulePattern("PIX TRANSF JOAO L28/10"));
   });
 });
 

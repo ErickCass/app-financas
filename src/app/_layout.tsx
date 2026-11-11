@@ -18,6 +18,7 @@ export default function RootLayout() {
           <Stack.Screen name="limites" options={{ presentation: "modal" }} />
           <Stack.Screen name="novo" options={{ presentation: "modal" }} />
           <Stack.Screen name="importar" options={{ presentation: "modal" }} />
+          <Stack.Screen name="classificar" />
           <Stack.Screen name="ajustes" />
         </Stack>
       </FinanceProvider>
