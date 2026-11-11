@@ -32,6 +32,7 @@ function Shell() {
           <Stack.Screen name="fluxo" />
           <Stack.Screen name="plano" options={{ presentation: "modal" }} />
           <Stack.Screen name="previsto" options={{ presentation: "modal" }} />
+          <Stack.Screen name="lancamento" options={{ presentation: "modal" }} />
           <Stack.Screen name="ajustes" />
         </Stack>
       </FinanceProvider>

@@ -107,7 +107,7 @@ export default function Fluxo() {
     sub: catName(x.categoryId),
     amount: x.amount,
     date: x.date,
-    href: x.categoryId ? undefined : "/classificar",
+    href: `/lancamento?id=${x.id}`,
   }));
 
   const row = (key: string, accountId: string, title: string, sub: string, amount: number, date: string, href?: string) => {

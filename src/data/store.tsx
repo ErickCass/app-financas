@@ -41,6 +41,8 @@ interface FinanceActions {
   categorizeMany(ids: string[], categoryId: string, learn?: boolean): Promise<void>;
   /** Marca lançamentos como transferência entre contas próprias (não contam no orçamento). */
   markInternal(ids: string[]): Promise<void>;
+  removeTransaction(id: string): Promise<void>;
+  updateTransaction(id: string, patch: { description?: string; amount?: number; date?: string }): Promise<void>;
   /** Desfaz: os lançamentos voltam a ficar sem categoria; `forgetRule` apaga a regra aprendida. */
   clearClassification(ids: string[], forgetRule?: boolean): Promise<void>;
   /** Renda a receber ou conta a pagar (avulsa ou mensal). */
@@ -189,6 +191,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           () => remote.markInternal(ids),
         );
       },
+      removeTransaction: (id: string) => {
+        const tx = data.transactions.find((t) => t.id === id);
+        return optimistic(
+          (d) => ({
+            ...d,
+            transactions: d.transactions.filter((t) => t.id !== id),
+            planned: tx?.plannedId ? d.planned.map((p) => (p.id === tx.plannedId ? { ...p, status: "pending" as const } : p)) : d.planned,
+          }),
+          () => remote.deleteTransaction(id, tx?.plannedId),
+        );
+      },
+      updateTransaction: (id: string, patch: { description?: string; amount?: number; date?: string }) =>
+        optimistic(
+          (d) => ({ ...d, transactions: d.transactions.map((t) => (t.id === id ? { ...t, ...patch } : t)) }),
+          () => remote.updateTransaction(id, patch),
+        ),
       clearClassification: (ids: string[], forgetRule = false) => {
         const set = new Set(ids);
         const first = data.transactions.find((t) => set.has(t.id));

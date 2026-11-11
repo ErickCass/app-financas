@@ -56,12 +56,7 @@ export default function Lancamentos() {
         subtitle: `${catName(tx.categoryId)}${tx.source === "apple_pay" ? " · Apple Pay" : ""}`,
         amount: tx.amount,
         status: tx.amount > 0 ? "recebido" : "pago",
-        // Com categoria: abre a categoria (lá dá para trocar). Sem categoria: vai para Classificar.
-        href: !tx.categoryId
-          ? "/classificar"
-          : f.categories.find((c) => c.id === tx.categoryId)?.kind !== "income"
-            ? `/categoria/${tx.categoryId}`
-            : undefined,
+        href: `/lancamento?id=${tx.id}`,
       }));
     let all = filter === "previstos" ? planned : filter === "realizados" ? real : [...planned, ...real];
     const q = normalizeDescription(query);

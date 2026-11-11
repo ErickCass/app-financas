@@ -475,3 +475,13 @@ export async function applyMatches(matches: { plannedId: string; transactionId: 
     check(await supabase.from("transactions").update({ planned_id: m.plannedId }).eq("id", m.transactionId), "ligar o lançamento ao previsto");
   }
 }
+
+/** Exclui um lançamento; se ele tinha dado baixa num previsto, o previsto volta a pendente. */
+export async function deleteTransaction(id: string, plannedId?: string) {
+  check(await supabase.from("transactions").delete().eq("id", id), "excluir o lançamento");
+  if (plannedId) check(await supabase.from("planned").update({ status: "pending" }).eq("id", plannedId), "reabrir o previsto");
+}
+
+export async function updateTransaction(id: string, patch: { description?: string; amount?: number; date?: string; category_id?: string | null }) {
+  check(await supabase.from("transactions").update(patch).eq("id", id), "salvar o lançamento");
+}
