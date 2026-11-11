@@ -15,6 +15,7 @@ export interface AccountRow {
   archived?: boolean;
   last4?: string | null;
   color?: string | null;
+  image?: string | null;
 }
 export interface CategoryRow {
   id: string;
@@ -73,6 +74,7 @@ export const accountFromRow = (r: AccountRow): Account => ({
   dueDay: r.due_day ?? undefined,
   last4: r.last4 ?? undefined,
   color: r.color ?? undefined,
+  image: r.image ?? undefined,
 });
 
 export const categoryFromRow = (r: CategoryRow): Category => ({ id: r.id, name: r.name, kind: r.kind, color: r.color });

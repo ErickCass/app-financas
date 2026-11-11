@@ -18,6 +18,8 @@ export interface Account {
   /** Final do cartão e cor escolhida para a miniatura. */
   last4?: string;
   color?: string;
+  /** Foto do cartão (data URL pequena) para a miniatura. */
+  image?: string;
 }
 
 export interface Category {

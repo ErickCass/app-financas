@@ -9,6 +9,7 @@ import { MoneyInput } from "@/ui/MoneyInput";
 import { NavBar } from "@/ui/NavBar";
 import { useTheme } from "@/ui/theme";
 import { AccountMark, ACCOUNT_COLORS, accountColor } from "@/ui/AccountMark";
+import { pickCardImage } from "@/ui/cardImage";
 
 export default function Ajustes() {
   const t = useTheme();
@@ -41,35 +42,6 @@ export default function Ajustes() {
             Informe o saldo atual da conta corrente. Ele é o ponto de partida do saldo projetado; quando a conexão com o banco
             estiver ativa, será atualizado sozinho.
           </Text>
-          <SectionTitle>Cores das contas e cartões</SectionTitle>
-      <Card style={{ gap: 0, paddingVertical: 4 }}>
-        {f.accounts.map((a, i) => (
-          <View key={a.id} style={{ gap: 8, paddingVertical: 10, borderBottomWidth: i < f.accounts.length - 1 ? 1 : 0, borderBottomColor: t.line }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <AccountMark account={a} />
-              <Text style={{ flex: 1, fontSize: 16, color: t.ink }} numberOfLines={1}>{a.name}</Text>
-            </View>
-            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-              {ACCOUNT_COLORS.map((c) => {
-                const on = accountColor(a) === c;
-                return (
-                  <Pressable
-                    key={c}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: on }}
-                    accessibilityLabel={`Cor ${c} para ${a.name}`}
-                    onPress={() => f.setAccountColor(a.id, c).catch((e: unknown) => setColorError(e instanceof Error ? e.message : String(e)))}
-                    style={{ width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: on ? c : "transparent", alignItems: "center", justifyContent: "center" }}
-                  >
-                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: c }} />
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ))}
-        {colorError ? <Text style={{ color: t.neg, fontSize: 13, paddingVertical: 8 }}>{colorError}</Text> : null}
-      </Card>
 
       <Card style={{ gap: 0, paddingVertical: 4 }}>
             {checking.map((a, i) => (
@@ -123,6 +95,52 @@ export default function Ajustes() {
           </Card>
         </>
       ) : null}
+
+          <SectionTitle>Cores das contas e cartões</SectionTitle>
+      <Card style={{ gap: 0, paddingVertical: 4 }}>
+        {f.accounts.map((a, i) => (
+          <View key={a.id} style={{ gap: 8, paddingVertical: 10, borderBottomWidth: i < f.accounts.length - 1 ? 1 : 0, borderBottomColor: t.line }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <AccountMark account={a} size={36} />
+              <Text style={{ flex: 1, fontSize: 16, color: t.ink }} numberOfLines={1}>{a.name}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  pickCardImage()
+                    .then((img) => (img ? f.setAccountImage(a.id, img) : undefined))
+                    .catch((e: unknown) => setColorError(e instanceof Error ? e.message : String(e)))
+                }
+                style={{ height: 32, paddingHorizontal: 10, borderRadius: 8, backgroundColor: t.accentSoft, justifyContent: "center" }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: "600", color: t.accent }}>{a.image ? "Trocar foto" : "Usar foto do cartão"}</Text>
+              </Pressable>
+              {a.image ? (
+                <Pressable accessibilityRole="button" accessibilityLabel={`Remover foto de ${a.name}`} onPress={() => void f.setAccountImage(a.id, null)} style={{ height: 32, paddingHorizontal: 8, justifyContent: "center" }}>
+                  <Text style={{ fontSize: 13, color: t.neg }}>Remover</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+              {ACCOUNT_COLORS.map((c) => {
+                const on = accountColor(a) === c;
+                return (
+                  <Pressable
+                    key={c}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: on }}
+                    accessibilityLabel={`Cor ${c} para ${a.name}`}
+                    onPress={() => f.setAccountColor(a.id, c).catch((e: unknown) => setColorError(e instanceof Error ? e.message : String(e)))}
+                    style={{ width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: on ? c : "transparent", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: c }} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+        {colorError ? <Text style={{ color: t.neg, fontSize: 13, paddingVertical: 8 }}>{colorError}</Text> : null}
+      </Card>
 
       <Card style={{ gap: 0, paddingVertical: 4 }}>
         <Link href="/limites" asChild>

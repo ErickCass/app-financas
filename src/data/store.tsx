@@ -34,6 +34,8 @@ interface FinanceActions {
   addTransaction(t: Omit<Transaction, "id">): Promise<void>;
   setAccountBalance(accountId: string, balance: number): Promise<void>;
   setAccountColor(accountId: string, color: string): Promise<void>;
+  /** Foto do cartão como data URL; null remove. */
+  setAccountImage(accountId: string, image: string | null): Promise<void>;
   /** Classifica um grupo de lançamentos de uma vez (e ensina a regra pela descrição). */
   categorizeMany(ids: string[], categoryId: string, learn?: boolean): Promise<void>;
   /** Marca lançamentos como transferência entre contas próprias (não contam no orçamento). */
@@ -159,6 +161,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             if (tx) await remote.learnRule(tx.description, categoryId, userId!);
           },
         );
+      },
+      setAccountImage: async (accountId: string, image: string | null) => {
+        if (!isDemo) await remote.updateAccount(accountId, { image });
+        setData((d) => ({ ...d, accounts: d.accounts.map((a) => (a.id === accountId ? { ...a, image: image ?? undefined } : a)) }));
       },
       setAccountColor: async (accountId: string, color: string) => {
         if (!isDemo) await remote.updateAccount(accountId, { color });

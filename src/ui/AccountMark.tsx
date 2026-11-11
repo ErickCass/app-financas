@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import type { Account } from "@/domain/types";
 
@@ -23,8 +23,21 @@ export function accountColor(a: Pick<Account, "name" | "kind" | "color">): strin
   return a.kind === "credit_card" ? "#1A3C8E" : "#0E4A5C";
 }
 
-export function AccountMark({ account, size = 28 }: { account: Pick<Account, "name" | "kind" | "color" | "last4">; size?: number }) {
+export function AccountMark({ account, size = 28 }: { account: Pick<Account, "name" | "kind" | "color" | "last4" | "image">; size?: number }) {
   const color = accountColor(account);
+  if (account.image) {
+    // Foto do próprio cartão: retrato (como os cartões atuais) ou paisagem, conforme a imagem.
+    const h = Math.round(size * 0.95);
+    const w = Math.round(h * 0.63);
+    return (
+      <Image
+        accessibilityLabel={account.name}
+        source={{ uri: account.image }}
+        style={{ width: w, height: h, borderRadius: Math.round(h * 0.12), backgroundColor: color }}
+        resizeMode="cover"
+      />
+    );
+  }
   if (account.kind === "credit_card") {
     const w = size;
     const h = Math.round(size * 0.66);
