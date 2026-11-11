@@ -18,7 +18,7 @@ type Phase =
   | { name: "reading" }
   | { name: "preview"; fileName: string; statement: ParsedStatement; rules: LearnedRule[]; imported: Set<string> }
   | { name: "saving" }
-  | { name: "done"; inserted: number; kind: ParsedStatement["kind"] };
+  | { name: "done"; inserted: number; kind: ParsedStatement["kind"]; settled: number };
 
 const NEW = "__new__";
 const INSTITUTION: Record<ParsedStatement["institution"], string> = { itau: "Itaú", nubank: "Nubank" };
@@ -87,7 +87,7 @@ export default function Importar() {
           },
         },
       });
-      setPhase({ name: "done", inserted: res.inserted, kind: st.kind });
+      setPhase({ name: "done", inserted: res.inserted, kind: st.kind, settled: res.settled });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setPhase(preview);
@@ -206,6 +206,7 @@ export default function Importar() {
             {phase.kind === "credit_card"
               ? "As compras já contam no orçamento de cada categoria, pela data da compra."
               : "O saldo da conta foi atualizado com o do extrato."}
+            {phase.settled > 0 ? ` ${phase.settled} conta${phase.settled > 1 ? "s" : ""} prevista${phase.settled > 1 ? "s" : ""} ${phase.settled > 1 ? "foram dadas" : "foi dada"} como paga${phase.settled > 1 ? "s" : ""}.` : ""}
           </Text>
           <View style={{ alignSelf: "stretch", gap: 8, marginTop: 8 }}>
             <BigButton label="Ver orçamento" onPress={() => router.replace("/orcamento")} />

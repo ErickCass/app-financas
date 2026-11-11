@@ -2,6 +2,7 @@ import type { Cents } from "./money";
 import type { Account, Budget, Category, ISODate, Planned, Transaction } from "./types";
 import { addMonths, dayOfMonth, daysInMonth, monthOf } from "./dates";
 import { categorySpent } from "./budget";
+import { fixedRemaining as fixedLeft } from "./reconcile";
 
 /**
  * Resumo do mês para a tela Início.
@@ -68,7 +69,7 @@ export function buildMonthSummary(params: {
       const expected = params.budgets.find((b) => b.categoryId === c.id && b.month === month)?.limit ?? 0;
       const spent = categorySpent(params.transactions, c.id, month);
       const alreadyPlanned = pending.filter((p) => p.categoryId === c.id && p.amount < 0).reduce((a, p) => a - p.amount, 0);
-      return { categoryId: c.id, amount: Math.max(expected - spent - alreadyPlanned, 0) };
+      return { categoryId: c.id, amount: fixedLeft(expected, spent, alreadyPlanned) };
     })
     .filter((r) => r.amount > 0);
   const fixedRemainingTotal = fixedRemaining.reduce((a, r) => a + r.amount, 0);

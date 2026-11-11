@@ -467,3 +467,11 @@ export async function updateAccount(id: string, patch: { color?: string | null; 
     throw new Error(`Falha ao salvar a conta: ${res.error.message}`);
   }
 }
+
+/** Marca previstos como pagos e liga o lançamento a eles. */
+export async function applyMatches(matches: { plannedId: string; transactionId: string }[]) {
+  for (const m of matches) {
+    check(await supabase.from("planned").update({ status: "paid" }).eq("id", m.plannedId), "dar baixa no previsto");
+    check(await supabase.from("transactions").update({ planned_id: m.plannedId }).eq("id", m.transactionId), "ligar o lançamento ao previsto");
+  }
+}

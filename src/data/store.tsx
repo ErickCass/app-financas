@@ -7,6 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { Account, Budget, Category, CategoryHistory, Planned, Transaction } from "@/domain/types";
 import { todayISO } from "@/domain/dates";
 import { rulePattern } from "@/import/categorize";
+import { matchPlannedToTransactions } from "@/domain/reconcile";
 import type { ImportPlan } from "@/import/plan";
 import { useAuth } from "./auth";
 import * as demo from "./demo";
@@ -54,7 +55,7 @@ interface FinanceActions {
     plan: ImportPlan;
     fileName: string;
     account: Account | { create: { name: string; kind: Account["kind"]; closingDay?: number; dueDay?: number; last4?: string } };
-  }): Promise<{ inserted: number; plannedId: string | null; accountId: string }>;
+  }): Promise<{ inserted: number; plannedId: string | null; accountId: string; settled: number }>;
 }
 
 const DEMO_DATA: FinanceData = {
@@ -260,8 +261,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         const target = "create" in account ? await remote.createAccount(account.create, userId) : account;
         const payFrom = data.accounts.find((a) => a.kind === "checking")?.id ?? null;
         const res = await remote.saveImport({ userId, account: target, payFromAccountId: payFrom, fileName, plan, today: data.today });
+        // Lançamentos que chegaram e batem com contas previstas dão baixa nelas.
+        const fresh = await remote.loadFinanceData(data.today);
+        const matches = matchPlannedToTransactions(fresh.planned, fresh.transactions);
+        if (matches.length) await remote.applyMatches(matches);
         await reload();
-        return { ...res, accountId: target.id };
+        return { ...res, accountId: target.id, settled: matches.length };
       },
       setBudgetLimit: (categoryId: string, month: string, limit: number) =>
         optimistic(

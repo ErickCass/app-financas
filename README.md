@@ -90,3 +90,11 @@ Tela **Importar** (aba Lançamentos, Início e Ajustes). Lê no próprio aparelh
 Por decisão do produto, toda compra no cartão conta como despesa **a pagar no mês da compra** (orçamento e
 saldo projetado). A fatura não entra no saldo projetado (seria contar duas vezes); o pagamento dela é
 transferência interna e já aparece no saldo real da conta quando acontece.
+
+## Contas previstas e baixa automática
+
+- Conta fixa com valor previsto (categoria do tipo "conta fixa" com limite no mês) entra em "a pagar" pelo que falta.
+  Quando o pago no mês chega a 90% do previsto, é dada como quitada (condomínio de 1.191,72 contra 1.200 não deixa resto).
+- Previsto avulso ou mensal (tabela `planned`) é baixado automaticamente quando, na importação, chega um lançamento do
+  mesmo mês, mesmo sinal, valor dentro de 15% (25% se "valor aproximado") e mesma categoria ou descrição parecida.
+  O lançamento fica ligado pelo `planned_id`. Regras em `src/domain/reconcile.ts`.
