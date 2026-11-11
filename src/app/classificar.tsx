@@ -26,6 +26,7 @@ export default function Classificar() {
   const f = useFinance();
   const [open, setOpen] = useState<string | null>(null);
   const [done, setDone] = useState(0);
+  const [sort, setSort] = useState<"valor" | "data">("valor");
 
   const groups = useMemo(() => {
     const map = new Map<string, Group>();
@@ -39,8 +40,11 @@ export default function Classificar() {
       map.set(key, g);
     }
     // Maiores primeiro: classificar o que mais pesa já resolve a maior parte do orçamento.
-    return [...map.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
-  }, [f.transactions]);
+    const latest = (g: Group) => g.items.reduce((m, x) => (x.date > m ? x.date : m), "");
+    return [...map.values()].sort((a, b) =>
+      sort === "data" ? latest(b).localeCompare(latest(a)) || Math.abs(b.total) - Math.abs(a.total) : Math.abs(b.total) - Math.abs(a.total),
+    );
+  }, [f.transactions, sort]);
 
   const pending = groups.reduce((a, g) => a + g.items.length, 0);
   // Ordem alfabética única, para achar a categoria de relance.
@@ -71,6 +75,27 @@ export default function Classificar() {
             : `${pending} lançamento${pending > 1 ? "s" : ""} em ${groups.length} grupo${groups.length > 1 ? "s" : ""}. Escolha uma vez por loja ou pessoa: o app aplica a todos iguais e lembra nas próximas importações.`}
         </Text>
       </View>
+
+      {groups.length > 1 ? (
+        <View accessibilityRole="tablist" style={{ flexDirection: "row", padding: 2, borderRadius: 10, backgroundColor: t.track, gap: 2 }}>
+          {(
+            [
+              ["valor", "Maior valor"],
+              ["data", "Mais recentes"],
+            ] as const
+          ).map(([k, label]) => (
+            <Pressable
+              key={k}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: sort === k }}
+              onPress={() => setSort(k)}
+              style={{ flex: 1, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: sort === k ? t.card : "transparent" }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: sort === k ? "600" : "500", color: t.ink }}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       {groups.length > 0 ? (
         <Card style={{ gap: 0, paddingVertical: 4 }}>
