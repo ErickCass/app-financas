@@ -459,3 +459,11 @@ export async function deletePlanned(id: string, ruleId?: string) {
     check(await supabase.from("recurring_rules").delete().eq("id", ruleId), "excluir a recorrência");
   }
 }
+
+export async function updateAccount(id: string, patch: { color?: string | null; name?: string }) {
+  const res = await supabase.from("accounts").update(patch).eq("id", id);
+  if (res.error) {
+    if (/column .*color/i.test(res.error.message)) throw new Error("Rode a migração 20261111000000_account_color.sql no Supabase para salvar cores.");
+    throw new Error(`Falha ao salvar a conta: ${res.error.message}`);
+  }
+}

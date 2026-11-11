@@ -9,8 +9,8 @@ export const DEMO_UPDATED_AT = "2026-11-09T09:40:00-03:00";
 
 export const accounts: Account[] = [
   { id: "itau", name: "Itaú", kind: "checking", balance: 1_238_040, balanceUpdatedAt: DEMO_UPDATED_AT },
-  { id: "visa", name: "Itaú Visa", kind: "credit_card", balance: 0, balanceUpdatedAt: DEMO_UPDATED_AT, closingDay: 5, dueDay: 12 },
-  { id: "nubank", name: "Nubank •••• 3029", kind: "credit_card", balance: 0, balanceUpdatedAt: DEMO_UPDATED_AT, closingDay: 28, dueDay: 5 },
+  { id: "visa", name: "Itaú Visa", kind: "credit_card", balance: 0, balanceUpdatedAt: DEMO_UPDATED_AT, closingDay: 5, dueDay: 12, last4: "9265" },
+  { id: "nubank", name: "Nubank •••• 3029", kind: "credit_card", balance: 0, balanceUpdatedAt: DEMO_UPDATED_AT, closingDay: 28, dueDay: 5, last4: "3029" },
 ];
 
 export const categories: Category[] = [

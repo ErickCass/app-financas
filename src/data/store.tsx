@@ -33,6 +33,7 @@ interface FinanceActions {
   setBudgetLimit(categoryId: string, month: string, limit: number): Promise<void>;
   addTransaction(t: Omit<Transaction, "id">): Promise<void>;
   setAccountBalance(accountId: string, balance: number): Promise<void>;
+  setAccountColor(accountId: string, color: string): Promise<void>;
   /** Classifica um grupo de lançamentos de uma vez (e ensina a regra pela descrição). */
   categorizeMany(ids: string[], categoryId: string, learn?: boolean): Promise<void>;
   /** Marca lançamentos como transferência entre contas próprias (não contam no orçamento). */
@@ -158,6 +159,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             if (tx) await remote.learnRule(tx.description, categoryId, userId!);
           },
         );
+      },
+      setAccountColor: async (accountId: string, color: string) => {
+        if (!isDemo) await remote.updateAccount(accountId, { color });
+        setData((d) => ({ ...d, accounts: d.accounts.map((a) => (a.id === accountId ? { ...a, color } : a)) }));
       },
       categorizeMany: (ids: string[], categoryId: string, learn = true) => {
         const set = new Set(ids);

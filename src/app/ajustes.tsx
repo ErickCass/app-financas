@@ -8,12 +8,14 @@ import { Card, Screen, SectionTitle } from "@/ui/components";
 import { MoneyInput } from "@/ui/MoneyInput";
 import { NavBar } from "@/ui/NavBar";
 import { useTheme } from "@/ui/theme";
+import { AccountMark, ACCOUNT_COLORS, accountColor } from "@/ui/AccountMark";
 
 export default function Ajustes() {
   const t = useTheme();
   const auth = useAuth();
   const f = useFinance();
   const checking = f.accounts.filter((a) => a.kind === "checking" || a.kind === "cash");
+  const [colorError, setColorError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [value, setValue] = useState(0);
   const [negative, setNegative] = useState(false);
@@ -39,7 +41,37 @@ export default function Ajustes() {
             Informe o saldo atual da conta corrente. Ele é o ponto de partida do saldo projetado; quando a conexão com o banco
             estiver ativa, será atualizado sozinho.
           </Text>
-          <Card style={{ gap: 0, paddingVertical: 4 }}>
+          <SectionTitle>Cores das contas e cartões</SectionTitle>
+      <Card style={{ gap: 0, paddingVertical: 4 }}>
+        {f.accounts.map((a, i) => (
+          <View key={a.id} style={{ gap: 8, paddingVertical: 10, borderBottomWidth: i < f.accounts.length - 1 ? 1 : 0, borderBottomColor: t.line }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <AccountMark account={a} />
+              <Text style={{ flex: 1, fontSize: 16, color: t.ink }} numberOfLines={1}>{a.name}</Text>
+            </View>
+            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+              {ACCOUNT_COLORS.map((c) => {
+                const on = accountColor(a) === c;
+                return (
+                  <Pressable
+                    key={c}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: on }}
+                    accessibilityLabel={`Cor ${c} para ${a.name}`}
+                    onPress={() => f.setAccountColor(a.id, c).catch((e: unknown) => setColorError(e instanceof Error ? e.message : String(e)))}
+                    style={{ width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: on ? c : "transparent", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: c }} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+        {colorError ? <Text style={{ color: t.neg, fontSize: 13, paddingVertical: 8 }}>{colorError}</Text> : null}
+      </Card>
+
+      <Card style={{ gap: 0, paddingVertical: 4 }}>
             {checking.map((a, i) => (
               <View key={a.id} style={{ paddingVertical: 12, gap: 10, borderBottomWidth: i < checking.length - 1 ? 1 : 0, borderBottomColor: t.line }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>

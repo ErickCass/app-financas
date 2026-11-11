@@ -10,6 +10,7 @@ import { Card, ProgressBar, Screen, SectionTitle } from "@/ui/components";
 import { NavBar } from "@/ui/NavBar";
 import { overrunDay, PaceChart } from "@/ui/PaceChart";
 import { STATUS_COLOR, STATUS_LABEL, useTheme } from "@/ui/theme";
+import { AccountMark } from "@/ui/AccountMark";
 
 export default function CategoriaDetalhe() {
   const t = useTheme();
@@ -18,6 +19,7 @@ export default function CategoriaDetalhe() {
   const view = useBudgetView("all");
   const v = view.find((x) => x.category.id === id);
   const [openTx, setOpenTx] = useState<string | null>(null);
+  const accountOf = (id: string) => f.accounts.find((a) => a.id === id);
 
   if (!v) {
     return (
@@ -140,6 +142,7 @@ export default function CategoriaDetalhe() {
                   <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>{String(dayOfMonth(tx.date)).padStart(2, "0")}</Text>
                   <Text style={{ fontSize: 11, color: t.ink2 }}>{shortDate(tx.date).split(" ")[1]}</Text>
                 </View>
+                {accountOf(tx.accountId) ? <AccountMark account={accountOf(tx.accountId)!} size={24} /> : null}
                 <View style={{ flex: 1, gap: 3 }}>
                   <Text style={{ fontSize: 16, color: t.ink }}>{tx.description}</Text>
                   <Text style={{ fontSize: 12, color: card ? t.accent : t.ink2, fontWeight: card ? "600" : "400" }}>

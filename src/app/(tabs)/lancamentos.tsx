@@ -6,11 +6,13 @@ import { formatBRL } from "@/domain/money";
 import { normalizeDescription } from "@/domain/dedup";
 import { monthOf, shortDate } from "@/domain/dates";
 import { Card, Screen } from "@/ui/components";
+import { AccountMark } from "@/ui/AccountMark";
 import { useTheme } from "@/ui/theme";
 
 type Filter = "todos" | "previstos" | "realizados";
 type Row = {
   key: string;
+  accountId: string;
   date: string;
   title: string;
   subtitle: string;
@@ -27,17 +29,18 @@ export default function Lancamentos() {
   const [filter, setFilter] = useState<Filter>("todos");
   const [query, setQuery] = useState("");
   const month = monthOf(f.today);
-  const catName = (id: string | null) => f.categories.find((c) => c.id === id)?.name ?? "Sem categoria";
-  const accName = (id: string) => f.accounts.find((a) => a.id === id)?.name ?? "";
+  const accountById = new Map(f.accounts.map((a) => [a.id, a]));
 
   const rows = useMemo(() => {
+    const catName = (id: string | null) => f.categories.find((c) => c.id === id)?.name ?? "Sem categoria";
     const planned: Row[] = f.planned
       .filter((p) => p.status !== "paid" && monthOf(p.dueDate) === month)
       .map((p) => ({
         key: p.id,
         date: p.dueDate,
         title: p.description,
-        subtitle: p.creditCardStatement ? "Ver as compras desta fatura ›" : `${catName(p.categoryId)} · ${accName(p.accountId)}`,
+        accountId: p.creditCardStatement?.accountId ?? p.accountId,
+        subtitle: p.creditCardStatement ? "Ver as compras desta fatura ›" : catName(p.categoryId),
         amount: p.amount,
         status: p.amount > 0 ? "a_receber" : "a_pagar",
         href: p.creditCardStatement ? `/fatura/${p.id}` : `/previsto?id=${p.id}`,
@@ -48,7 +51,9 @@ export default function Lancamentos() {
         key: tx.id,
         date: tx.date,
         title: tx.description,
-        subtitle: `${catName(tx.categoryId)} · ${accName(tx.accountId)}${tx.source === "apple_pay" ? " · Apple Pay" : ""}`,
+        accountId: tx.accountId,
+        // A miniatura já identifica a conta; o texto fica só com a categoria.
+        subtitle: `${catName(tx.categoryId)}${tx.source === "apple_pay" ? " · Apple Pay" : ""}`,
         amount: tx.amount,
         status: tx.amount > 0 ? "recebido" : "pago",
         // Com categoria: abre a categoria (lá dá para trocar). Sem categoria: vai para Classificar.
@@ -195,6 +200,7 @@ export default function Lancamentos() {
                       borderBottomColor: t.line,
                     }}
                   >
+                    {accountById.get(r.accountId) ? <AccountMark account={accountById.get(r.accountId)!} /> : null}
                     <View style={{ flex: 1, gap: 2 }}>
                       <Text style={{ fontSize: 16, color: t.ink }}>{r.title}</Text>
                       <Text style={{ fontSize: 13, color: r.href && r.status.startsWith("a_") ? t.accent : t.ink2 }}>{r.subtitle}</Text>

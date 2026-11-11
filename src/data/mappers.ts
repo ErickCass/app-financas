@@ -13,6 +13,8 @@ export interface AccountRow {
   closing_day: number | null;
   due_day: number | null;
   archived?: boolean;
+  last4?: string | null;
+  color?: string | null;
 }
 export interface CategoryRow {
   id: string;
@@ -69,6 +71,8 @@ export const accountFromRow = (r: AccountRow): Account => ({
   balanceUpdatedAt: r.balance_updated_at,
   closingDay: r.closing_day ?? undefined,
   dueDay: r.due_day ?? undefined,
+  last4: r.last4 ?? undefined,
+  color: r.color ?? undefined,
 });
 
 export const categoryFromRow = (r: CategoryRow): Category => ({ id: r.id, name: r.name, kind: r.kind, color: r.color });

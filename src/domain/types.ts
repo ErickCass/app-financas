@@ -15,6 +15,9 @@ export interface Account {
   /** Só para cartão: dia de fechamento e de vencimento da fatura. */
   closingDay?: number;
   dueDay?: number;
+  /** Final do cartão e cor escolhida para a miniatura. */
+  last4?: string;
+  color?: string;
 }
 
 export interface Category {
