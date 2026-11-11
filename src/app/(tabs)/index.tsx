@@ -124,6 +124,8 @@ export default function Inicio() {
       </Card>
 
       <Card style={{ gap: 18 }}>
+        <Link href="/fluxo?tipo=despesas" asChild>
+          <Pressable accessibilityRole="link" accessibilityLabel="Despesas do mês: ver pagas e a pagar">
         <FlowRow
           title="Despesas"
           total={money(expTotal)}
@@ -131,7 +133,11 @@ export default function Inicio() {
           a={{ label: "Pagas", value: money(s.expensesPaid), share: expTotal ? s.expensesPaid / expTotal : 0, color: t.neg }}
           b={{ label: "A pagar", value: money(s.expensesPending), color: t.negSoft }}
         />
+          </Pressable>
+        </Link>
         <Divider />
+        <Link href="/fluxo?tipo=renda" asChild>
+          <Pressable accessibilityRole="link" accessibilityLabel="Renda do mês: ver recebida e a receber">
         <FlowRow
           title="Renda"
           total={money(incTotal)}
@@ -139,6 +145,8 @@ export default function Inicio() {
           a={{ label: "Recebida", value: money(s.incomeReceived), share: incTotal ? s.incomeReceived / incTotal : 0, color: t.pos }}
           b={{ label: "A receber", value: money(s.incomePending), color: t.posSoft }}
         />
+          </Pressable>
+        </Link>
       </Card>
 
       <Link href="/orcamento" asChild>
@@ -301,7 +309,7 @@ function FlowRow({
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
         <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>{title}</Text>
-        <Text style={{ fontSize: 15, color: t.ink2 }}>{total} no mês</Text>
+        <Text style={{ fontSize: 15, color: t.ink2 }}>{total} no mês ›</Text>
       </View>
       <ProgressBar segments={empty ? [] : [{ value: a.share, color: a.color }, { value: 1 - a.share, color: b.color }]} />
       <View style={{ flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap", rowGap: 4, columnGap: 12 }}>
