@@ -26,6 +26,7 @@ export default function Classificar() {
   const f = useFinance();
   const [open, setOpen] = useState<string | null>(null);
   const [done, setDone] = useState(0);
+  const [last, setLast] = useState<{ ids: string[]; label: string; learned: boolean } | null>(null);
   // Lançamentos desmarcados dentro do grupo aberto (ficam de fora da classificação).
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const toggleOpen = (key: string | null) => {
@@ -65,7 +66,20 @@ export default function Classificar() {
     if (whole) toggleOpen(null);
     else setSkipped(new Set());
     setDone((d) => d + items.length);
+    setLast({
+      ids: items.map((i) => i.id),
+      label: `${items.length} em ${f.categories.find((c) => c.id === categoryId)?.name ?? "categoria"}`,
+      learned: whole,
+    });
     await f.categorizeMany(items.map((i) => i.id), categoryId, whole);
+  }
+
+  async function undo() {
+    if (!last) return;
+    const action = last;
+    setLast(null);
+    setDone((d) => Math.max(0, d - action.ids.length));
+    await f.clearClassification(action.ids, action.learned);
   }
 
   async function transfer(g: Group) {
@@ -74,6 +88,7 @@ export default function Classificar() {
     if (items.length === g.items.length) toggleOpen(null);
     else setSkipped(new Set());
     setDone((d) => d + items.length);
+    setLast({ ids: items.map((i) => i.id), label: `${items.length} como transferência`, learned: false });
     await f.markInternal(items.map((i) => i.id));
   }
 
@@ -90,6 +105,20 @@ export default function Classificar() {
             : `${pending} lançamento${pending > 1 ? "s" : ""} em ${groups.length} grupo${groups.length > 1 ? "s" : ""}. Escolha uma vez por loja ou pessoa: o app aplica a todos iguais e lembra nas próximas importações.`}
         </Text>
       </View>
+
+      {last ? (
+        <View
+          accessibilityRole="alert"
+          style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 14, paddingRight: 6, minHeight: 48, borderRadius: 14, backgroundColor: t.posSoft }}
+        >
+          <Text numberOfLines={1} style={{ flex: 1, fontSize: 15, color: t.ink }}>
+            ✓ {last.label}
+          </Text>
+          <Pressable accessibilityRole="button" onPress={undo} style={{ height: 44, paddingHorizontal: 12, justifyContent: "center" }}>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: t.accent }}>Desfazer</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {groups.length > 1 ? (
         <View accessibilityRole="tablist" style={{ flexDirection: "row", padding: 2, borderRadius: 10, backgroundColor: t.track, gap: 2 }}>

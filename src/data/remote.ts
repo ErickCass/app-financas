@@ -321,3 +321,18 @@ export async function markInternal(ids: string[]) {
   if (ids.length === 0) return;
   check(await supabase.from("transactions").update({ is_card_payment: true, category_id: null }).in("id", ids), "marcar como transferência");
 }
+
+/** Desfaz uma classificação: volta a ficar sem categoria (e deixa de ser transferência). */
+export async function clearClassification(ids: string[]) {
+  if (ids.length === 0) return;
+  check(
+    await supabase.from("transactions").update({ category_id: null, category_source: null, is_card_payment: false }).in("id", ids),
+    "desfazer a classificação",
+  );
+}
+
+export async function forgetRule(description: string) {
+  const pattern = rulePattern(description);
+  if (pattern.length < 3) return;
+  check(await supabase.from("classification_rules").delete().eq("pattern", pattern), "esquecer a regra de categoria");
+}

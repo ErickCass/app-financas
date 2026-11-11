@@ -37,6 +37,8 @@ interface FinanceActions {
   categorizeMany(ids: string[], categoryId: string, learn?: boolean): Promise<void>;
   /** Marca lançamentos como transferência entre contas próprias (não contam no orçamento). */
   markInternal(ids: string[]): Promise<void>;
+  /** Desfaz: os lançamentos voltam a ficar sem categoria; `forgetRule` apaga a regra aprendida. */
+  clearClassification(ids: string[], forgetRule?: boolean): Promise<void>;
   createCategory(name: string, kind: Category["kind"]): Promise<void>;
   updateCategory(id: string, patch: { name?: string; kind?: Category["kind"] }): Promise<void>;
   archiveCategory(id: string): Promise<void>;
@@ -168,6 +170,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         return optimistic(
           (d) => ({ ...d, transactions: d.transactions.map((t) => (set.has(t.id) ? { ...t, isCardPayment: true, categoryId: null } : t)) }),
           () => remote.markInternal(ids),
+        );
+      },
+      clearClassification: (ids: string[], forgetRule = false) => {
+        const set = new Set(ids);
+        const first = data.transactions.find((t) => set.has(t.id));
+        return optimistic(
+          (d) => ({ ...d, transactions: d.transactions.map((t) => (set.has(t.id) ? { ...t, categoryId: null, isCardPayment: undefined } : t)) }),
+          async () => {
+            await remote.clearClassification(ids);
+            if (first && forgetRule) await remote.forgetRule(first.description);
+          },
         );
       },
       createCategory: async (name: string, kind: Category["kind"]) => {
