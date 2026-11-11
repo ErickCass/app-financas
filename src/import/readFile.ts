@@ -6,6 +6,8 @@ import { Platform } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { looksLikeItauAccount, looksLikeItauCard, parseItauAccount, parseItauCard } from "./itau";
 import { looksLikeNubankCsv, parseNubankCsv } from "./nubankCsv";
+import { looksLikeItauCardXlsx, parseItauCardXlsx } from "./itauCardXlsx";
+import { isZip, readXlsx } from "./xlsx";
 import type { PdfPage } from "./pdfText";
 import { layoutPdfText } from "./pdfText";
 import type { ParsedStatement } from "./types";
@@ -17,7 +19,13 @@ export interface PickedFile {
 
 export async function pickStatementFile(): Promise<PickedFile | null> {
   const res = await DocumentPicker.getDocumentAsync({
-    type: ["application/pdf", "text/csv", "text/comma-separated-values", "text/plain"],
+    type: [
+      "application/pdf",
+      "text/csv",
+      "text/comma-separated-values",
+      "text/plain",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ],
     copyToCacheDirectory: true,
     multiple: false,
   });
@@ -82,9 +90,15 @@ async function readPdfPages(bytes: Uint8Array): Promise<PdfPage[]> {
   return pages;
 }
 
-export const SUPPORTED_HINT = "Fatura do cartão Itaú (PDF), extrato da conta Itaú (PDF) e fatura do Nubank (CSV).";
+export const SUPPORTED_HINT =
+  "fatura do cartão Itaú (PDF ou planilha), extrato da conta Itaú (PDF) e fatura do Nubank (CSV).";
 
 export async function parseStatementFile(file: PickedFile): Promise<ParsedStatement> {
+  if (isZip(file.bytes)) {
+    const sheet = readXlsx(file.bytes);
+    if (looksLikeItauCardXlsx(sheet)) return parseItauCardXlsx(sheet);
+    throw new Error(`Não reconheci esta planilha. Por enquanto lemos: ${SUPPORTED_HINT}`);
+  }
   if (isPdf(file.bytes)) {
     if (Platform.OS !== "web") {
       throw new Error("Por enquanto, PDFs são importados pelo site. No iPhone, importe o CSV ou use o navegador.");

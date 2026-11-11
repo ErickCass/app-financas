@@ -47,3 +47,5 @@ dist/
 !.env.example
 .run-local.mts
 public/pdfjs/
+.raw-local.mts
+.dbg.mts

@@ -16,9 +16,11 @@ export function looksLikeItauCard(text: PdfText): boolean {
   return /Total desta fatura/i.test(all) && /Lançamentos: compras e saques|Lançamentos internacionais/i.test(all);
 }
 
+const SALDO_LINE = /^SALDO (DO DIA|TOTAL DISPON\S* DIA|ANTERIOR)/i;
+
 export function looksLikeItauAccount(text: PdfText): boolean {
   const all = text.lines.join("\n");
-  return /extrato conta/i.test(all) && /SALDO DO DIA/.test(all);
+  return /extrato conta/i.test(all) && text.lines.some((l) => SALDO_LINE.test(l.replace(/^\d{2}\/\d{2}\/\d{4}\s+/, "").trim()));
 }
 
 function find(lines: string[], re: RegExp): RegExpMatchArray | null {
@@ -184,6 +186,7 @@ export function parseItauCard(text: PdfText): ParsedStatement {
     closingDay: nextClosing ? Number(nextClosing[1]) : Number(closing.slice(8, 10)),
     declaredTotal: total ? money(total[1], total[2]!) : undefined,
     items,
+    upcoming: [],
     checks,
   };
 }
@@ -200,16 +203,36 @@ export function parseItauAccount(text: PdfText): ParsedStatement {
   const short = (holder?.[1] ?? "").trim().slice(0, 7).trim().toUpperCase();
   const ownName = short.length >= 5 ? short : null;
 
+  // Cabeçalho "saldo em conta": vale mais que o último saldo diário, porque
+  // os lançamentos de hoje ainda não têm linha de saldo.
+  const headerBalance = (() => {
+    const i = text.lines.findIndex((l) => /^saldo em conta\b/i.test(l.trim()));
+    const m = i >= 0 ? text.lines[i + 1]?.match(new RegExp(String.raw`^\s*R\$\s*${VALUE}`)) : null;
+    return m ? money(m[1], m[2]!) : null;
+  })();
+
   const items: ParsedItem[] = [];
+  const upcoming: ParsedItem[] = [];
   const balances: { date: string; amount: Cents }[] = [];
+  let future = false;
 
   for (const raw of text.lines) {
-    const m = raw.trim().match(new RegExp(String.raw`^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s{3,}${VALUE}(?:\s{3,}${VALUE})?$`));
+    const line = raw.trim();
+    // "saídas/entradas futuras": agendados que ainda não saíram da conta.
+    if (/^(sa[ií]das|entradas) futuras/i.test(line)) {
+      future = true;
+      continue;
+    }
+    if (/^lan[çc]amentos$/i.test(line) || /^data\s+lan[çc]amentos\s+valor/i.test(line)) {
+      future = false;
+      continue;
+    }
+    const m = line.match(new RegExp(String.raw`^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s{3,}${VALUE}(?:\s{3,}${VALUE})?$`));
     if (!m) continue;
     const [, d, desc, minus, value, minus2, value2] = m;
     const date = brDate(d!);
     const description = tidy(desc!);
-    if (/^SALDO (DO DIA|ANTERIOR)/i.test(description)) {
+    if (SALDO_LINE.test(description)) {
       balances.push({ date, amount: money(value2 ? minus2 : minus, value2 ?? value!) });
       continue;
     }
@@ -217,28 +240,31 @@ export function parseItauAccount(text: PdfText): ParsedStatement {
     const clean = description.replace(/(\D)\d{2}\/\d{2}$/, "$1").trim();
     const internal =
       isCardPayment(clean) || (ownName !== null && /^(PIX|TED|DOC)\b.*\bTRANSF\b/i.test(clean) && clean.toUpperCase().endsWith(` ${ownName}`));
-    items.push({ date, description: clean, amount: money(minus, value!), internal: internal || undefined });
+    const item: ParsedItem = { date, description: clean, amount: money(minus, value!), internal: internal || undefined };
+    (future ? upcoming : items).push(item);
   }
 
   if (balances.length === 0) throw new Error("Não encontrei os saldos diários no extrato do Itaú.");
   const sortedBalances = [...balances].sort((a, b) => a.date.localeCompare(b.date));
   const opening = sortedBalances[0]!;
-  const closing = sortedBalances.at(-1)!;
+  const lastDaily = sortedBalances.at(-1)!;
+  const closingAmount = headerBalance ?? lastDaily.amount;
 
   const asOf = issued
     ? `${brDate(issued[1]!)}T${issued[2]!.length === 5 ? `${issued[2]}:00` : issued[2]}-03:00`
-    : `${closing.date}T23:59:00-03:00`;
+    : `${lastDaily.date}T23:59:00-03:00`;
 
   return {
     institution: "itau",
     kind: "checking",
     suggestedAccountName: account ? `Conta Itaú •••• ${account[1]!.slice(-4)}` : "Conta Itaú",
-    closingBalance: { amount: closing.amount, asOf },
+    closingBalance: { amount: closingAmount, asOf },
     items,
+    upcoming,
     checks: [
       {
         label: "Saldo final do extrato",
-        declared: closing.amount - opening.amount,
+        declared: closingAmount - opening.amount,
         computed: items.filter((i) => i.date > opening.date).reduce((s, i) => s + i.amount, 0),
       },
     ],

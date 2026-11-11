@@ -62,9 +62,10 @@ export default function Importar() {
             rules: preview.rules,
             importedKeys: preview.imported,
             existing: f.transactions,
+            existingPlanned: f.planned,
           })
         : null,
-    [preview, accountChoice, f.categories, f.transactions],
+    [preview, accountChoice, f.categories, f.transactions, f.planned],
   );
 
   async function save() {
@@ -160,6 +161,12 @@ export default function Importar() {
             ) : null}
           </Card>
 
+          {plan.newUpcoming.length > 0 ? (
+            <Text style={{ fontSize: 14, color: t.ink2, textAlign: "center", lineHeight: 20 }}>
+              {plan.newUpcoming.length} agendado{plan.newUpcoming.length > 1 ? "s" : ""} do extrato {plan.newUpcoming.length > 1 ? "entram" : "entra"} como previsto a pagar.
+            </Text>
+          ) : null}
+
           {plan.rows.length > plan.newRows.length ? (
             <Text style={{ fontSize: 14, color: t.ink2, textAlign: "center" }}>
               {plan.rows.length - plan.newRows.length} lançamento(s) já estavam no app e serão ignorados.
@@ -170,11 +177,11 @@ export default function Importar() {
 
           <BigButton
             label={
-              plan.newRows.length === 0
+              plan.newRows.length === 0 && plan.newUpcoming.length === 0
                 ? "Nada novo para importar"
-                : `${plan.mismatches.length ? "Importar mesmo assim" : "Importar"} ${plan.newRows.length} lançamento${plan.newRows.length > 1 ? "s" : ""}`
+                : `${plan.mismatches.length ? "Importar mesmo assim" : "Importar"} ${plan.newRows.length + plan.newUpcoming.length} lançamento${plan.newRows.length + plan.newUpcoming.length > 1 ? "s" : ""}`
             }
-            disabled={plan.newRows.length === 0}
+            disabled={plan.newRows.length === 0 && plan.newUpcoming.length === 0}
             onPress={save}
           />
         </>
@@ -226,7 +233,7 @@ function defaultAccount(st: ParsedStatement, accounts: Account[]): string {
 function PickStep({ busy, demo, onChoose }: { busy: boolean; demo: boolean; onChoose: () => void }) {
   const t = useTheme();
   const formats = [
-    ["Fatura do cartão Itaú", "PDF baixado no app ou no site do Itaú"],
+    ["Fatura do cartão Itaú", "PDF da fatura fechada, ou planilha (.xlsx) da fatura aberta"],
     ["Extrato da conta Itaú", "PDF do extrato da conta corrente"],
     ["Fatura do Nubank", "CSV: no app, Cartão › Fatura › Exportar fatura"],
   ];
@@ -313,6 +320,7 @@ function Checks({ statement: st, mismatches }: { statement: ParsedStatement; mis
     const when = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}, ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     rows.push({ ok: true, text: `Saldo em ${when}: ${formatBRL(st.closingBalance.amount)}. Vira o saldo atual da conta.` });
   }
+  for (const note of st.notes ?? []) rows.push({ ok: true, text: note });
   if (rows.length === 0) return null;
   return (
     <Card style={{ gap: 10 }}>

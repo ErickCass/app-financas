@@ -4,7 +4,7 @@
  */
 import { areLikelyDuplicates, normalizeDescription } from "@/domain/dedup";
 import type { Cents } from "@/domain/money";
-import type { Category, Transaction } from "@/domain/types";
+import type { Category, Planned, Transaction } from "@/domain/types";
 import { suggestCategory, type CategorySource, type LearnedRule } from "./categorize";
 import type { ParsedItem, ParsedStatement, TotalCheck } from "./types";
 
@@ -22,6 +22,8 @@ export interface ImportPlan {
   statement: ParsedStatement;
   rows: ImportRow[];
   newRows: ImportRow[];
+  /** Agendados do extrato que ainda não existem como previsto. */
+  newUpcoming: ImportRow[];
   /** Conferências que não bateram (vazio = tudo confere). */
   mismatches: TotalCheck[];
   /** Gasto do arquivo inteiro (sem transferências internas), em centavos positivos. */
@@ -51,8 +53,9 @@ export function buildImportPlan(args: {
   rules: LearnedRule[];
   importedKeys: Set<string>;
   existing: Transaction[];
+  existingPlanned?: Planned[];
 }): ImportPlan {
-  const { statement, accountId, categories, rules, importedKeys, existing } = args;
+  const { statement, accountId, categories, rules, importedKeys, existing, existingPlanned = [] } = args;
   const keys = importKeys(statement);
   const manual = existing.filter((t) => t.accountId === accountId && t.source !== "import");
 
@@ -85,6 +88,26 @@ export function buildImportPlan(args: {
     }
   }
 
+  // Agendados ("saídas futuras"): viram previstos, sem repetir o que já existe.
+  const newUpcoming: ImportRow[] = statement.upcoming
+    .map((item, idx) => {
+      const suggestion = item.internal ? null : suggestCategory(item, categories, rules);
+      const already = existingPlanned.some(
+        (p) =>
+          p.status !== "paid" &&
+          p.dueDate === item.date &&
+          (p.amount === item.amount || normalizeDescription(p.description) === normalizeDescription(item.description)),
+      );
+      return {
+        key: `upcoming|${statement.institution}|${item.date}|${normalizeDescription(item.description)}|${item.amount}|${idx}`,
+        item,
+        categoryId: suggestion?.categoryId ?? null,
+        categorySource: suggestion?.source ?? null,
+        duplicate: already ? ("imported" as const) : null,
+      };
+    })
+    .filter((r) => r.duplicate === null);
+
   const newRows = rows.filter((r) => r.duplicate === null);
   // Cartão: compras menos estornos. Conta: só as saídas (entradas são renda, não abatem gasto).
   const counted = rows.filter((r) => !r.item.internal && (statement.kind === "credit_card" || r.item.amount < 0));
@@ -102,6 +125,7 @@ export function buildImportPlan(args: {
     statement,
     rows,
     newRows,
+    newUpcoming,
     mismatches: statement.checks.filter((c) => c.declared !== c.computed),
     spending,
     period: dates.length ? { from: dates[0]!, to: dates.at(-1)! } : null,

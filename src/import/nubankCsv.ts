@@ -78,6 +78,7 @@ export function parseNubankCsv(text: string, fileName = ""): ParsedStatement {
     // O Nubank fecha a fatura 7 dias antes do vencimento (aproximação de 30 dias no mês).
     closingDay: dueDay > 7 ? dueDay - 7 : dueDay + 23,
     items,
+    upcoming: [],
     checks: [],
   };
 }

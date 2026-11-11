@@ -44,5 +44,9 @@ export interface ParsedStatement {
   /** Conta corrente: saldo final do extrato e quando foi emitido. */
   closingBalance?: { amount: Cents; asOf: string };
   items: ParsedItem[];
+  /** Agendados que ainda não saíram ("saídas futuras" do extrato): viram previstos. */
+  upcoming: ParsedItem[];
+  /** Avisos para a prévia (ex.: parcial da fatura inclui saldo anterior). */
+  notes?: string[];
   checks: TotalCheck[];
 }

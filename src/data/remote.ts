@@ -199,6 +199,23 @@ export async function saveImport(args: {
     category_source: r.categoryId ? (r.categorySource === "rule" ? "rule" : "ai") : null,
   }));
 
+  // Agendados do extrato viram previstos a pagar/receber.
+  if (plan.newUpcoming.length > 0) {
+    check(
+      await supabase.from("planned").insert(
+        plan.newUpcoming.map((r) => ({
+          user_id: userId,
+          account_id: account.id,
+          category_id: r.categoryId,
+          due_date: r.item.date,
+          description: r.item.description,
+          amount_cents: r.item.amount,
+        })),
+      ),
+      "gravar os lançamentos agendados",
+    );
+  }
+
   let inserted = 0;
   for (let i = 0; i < rows.length; i += 200) {
     const chunk = rows.slice(i, i + 200);

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { Category, Transaction } from "@/domain/types";
 import { rulePattern, suggestCategory } from "./categorize";
 import { parseItauAccount, parseItauCard, looksLikeItauAccount, looksLikeItauCard } from "./itau";
+import { looksLikeItauCardXlsx, parseItauCardXlsx } from "./itauCardXlsx";
+import type { Sheet } from "./xlsx";
 import { parseNubankCsv, splitCsvLine } from "./nubankCsv";
 import { columnSplit, layoutPdfText, type PdfPage } from "./pdfText";
 import { buildImportPlan, importKeys } from "./plan";
@@ -204,6 +206,7 @@ describe("extrato Itaú", () => {
 
   it("lê saldo final, emissão e confere com os saldos", () => {
     expect(st.closingBalance).toEqual({ amount: -100000, asOf: "2026-11-10T18:40:19-03:00" });
+    expect(st.upcoming).toEqual([]);
     expect(st.checks[0]!.computed).toBe(st.checks[0]!.declared);
     expect(st.suggestedAccountName).toBe("Conta Itaú •••• 2345");
   });
@@ -216,6 +219,82 @@ describe("extrato Itaú", () => {
       "REMUNERACAO/SALARIO 0000053",
     ]);
     expect(st.items.map((i) => Boolean(i.internal))).toEqual([false, true, true, false]);
+  });
+});
+
+const ITAU_ACCOUNT_V2 = {
+  lines: [
+    "FULANO DE TAL SILVA   123.456.789-00   agência: 1234   conta: 012345-6",
+    "saldo em conta   Limite da Conta utilizado   Limite da Conta disponível",
+    "R$ -1.500,00   R$ 1.500,00   R$ 8.500,00",
+    "extrato conta corrente",
+    "lançamentos futuros",
+    "período de visualização: de 01/10/2026 até 10/11/2026",
+    "emitido em: 10/11/2026   23:45:50",
+    "saídas futuras",
+    "data   lançamentos futuros   valor (R$)   saldo (R$)",
+    "10/11/2026   DA VIVO-SP 123456   -270,10",
+    "lançamentos",
+    "data   lançamentos   valor (R$)   saldo (R$)",
+    "10/11/2026   PAG BOLETO ESCOLA   -500,00",
+    "09/11/2026   SALDO TOTAL DISPONÍVEL DIA   -1.000,00",
+    "09/11/2026   PIX WHATS MARIA09/11   -200,00",
+    "30/09/2026   SALDO ANTERIOR   -800,00",
+  ],
+  columns: [],
+};
+
+describe("extrato Itaú, formato com lançamentos futuros", () => {
+  const st = parseItauAccount(ITAU_ACCOUNT_V2);
+
+  it("reconhece o arquivo e usa o saldo do cabeçalho", () => {
+    expect(looksLikeItauAccount(ITAU_ACCOUNT_V2)).toBe(true);
+    // O saldo diário mais recente é de ontem; o do cabeçalho já inclui hoje.
+    expect(st.closingBalance).toEqual({ amount: -150000, asOf: "2026-11-10T23:45:50-03:00" });
+    expect(st.checks[0]!.computed).toBe(st.checks[0]!.declared);
+  });
+
+  it("separa as saídas futuras dos lançamentos", () => {
+    expect(st.items.map((i) => i.description)).toEqual(["PAG BOLETO ESCOLA", "PIX WHATS MARIA"]);
+    expect(st.upcoming).toEqual([{ date: "2026-11-10", description: "DA VIVO-SP 123456", amount: -27010, internal: undefined }]);
+  });
+});
+
+describe("fatura aberta do Itaú em planilha", () => {
+  // Mesma estrutura do arquivo do banco: resumo em cima, lançamentos abaixo.
+  const sheet: Sheet = [
+    [null, "Nome", "Fulano De Tal"],
+    [null, "Fatura Aberta - Dezembro/2026"],
+    [null, "Cartão", null, null, null, "Valor (parcial)", null, "Vencimento"],
+    [null, "Cartao Exemplo - final 1234", null, null, null, 1500.5, null, new Date(Date.UTC(2026, 11, 6))],
+    [],
+    [null, "Data", "Lançamento", "Parcelamento", "Valor", null, "Titularidade", "Nome", "Tipo do cartão", "Número do cartão"],
+    [null, new Date(Date.UTC(2026, 9, 30)), "Pagamento Efetuado", null, -900, null, "Titular", "F", "Físico", "****4783"],
+    [null, new Date(Date.UTC(2026, 10, 7)), "Padoca Do Bairro", null, 100.5, null, "Titular", "F", "Físico", "****1234"],
+    [null, new Date(Date.UTC(2026, 10, 6)), "Airbnb * Abc", null, -50, null, "Titular", "F", "Virtual recorrente", "****5678"],
+    [null, new Date(Date.UTC(2026, 5, 28)), "Pet Love*clube", "Parcela 6 de 12", 2.9, null, "Titular", "F", "Virtual", "****5678"],
+  ];
+  const st = parseItauCardXlsx(sheet);
+
+  it("reconhece a planilha e lê vencimento, mês e cartão", () => {
+    expect(looksLikeItauCardXlsx(sheet)).toBe(true);
+    expect(st.dueDate).toBe("2026-12-06");
+    expect(st.statementMonth).toBe("2026-12");
+    expect(st.last4).toBe("1234");
+    // Fatura aberta: o total ainda vai mudar, então não vira valor declarado.
+    expect(st.declaredTotal).toBeUndefined();
+  });
+
+  it("inverte o sinal, marca o pagamento e põe a parcela no mês dela", () => {
+    expect(st.items.map((i) => i.amount)).toEqual([90000, -10050, 5000, -290]);
+    expect(st.items[0]!.internal).toBe(true);
+    expect(st.items[1]!.cardLast4).toBe("1234");
+    expect(st.items[3]).toMatchObject({ date: "2026-11-28", installment: { n: 6, total: 12 } });
+  });
+
+  it("avisa quando o parcial do banco inclui o que não está detalhado", () => {
+    // 100,50 − 50,00 + 2,90 = 53,40 listados; o banco informa 1.500,50.
+    expect(st.notes?.[0]).toContain("R$ 1.447,10");
   });
 });
 
