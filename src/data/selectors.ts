@@ -34,6 +34,7 @@ export function useMonthSummary() {
       transactions: f.transactions,
       planned: f.planned,
       budgets: f.budgets,
+      categories: f.categories,
     });
     const limitsTotal = f.budgets.filter((b) => b.month === month).reduce((a, b) => a + b.limit, 0);
     const yearEnd = projectYearEnd({

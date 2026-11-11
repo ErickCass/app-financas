@@ -164,7 +164,7 @@ describe("resumo do mês (números do mockup)", () => {
         tx({ id: "est", date: "2026-11-05", amount: 10_000, accountId: "visa" }), // estorno no cartão
       ],
       planned: [
-        { id: "p1", accountId: "itau", dueDate: "2026-11-10", description: "Condomínio", amount: -115_000, categoryId: null, status: "pending" },
+        { id: "p1", accountId: "itau", dueDate: "2026-11-10", description: "Condomínio", amount: -115_000, categoryId: "condo", status: "pending" },
         { id: "p2", accountId: "itau", dueDate: "2026-11-12", description: "Fatura Visa", amount: -231_044, categoryId: null, status: "pending", creditCardStatement: { accountId: "visa", month: "2026-11" } },
         { id: "p3", accountId: "itau", dueDate: "2026-11-14", description: "Reembolso", amount: 92_000, categoryId: null, status: "pending" },
         { id: "p4", accountId: "itau", dueDate: "2026-11-15", description: "Escola", amount: -108_000, categoryId: null, status: "pending" },
@@ -172,14 +172,28 @@ describe("resumo do mês (números do mockup)", () => {
         { id: "p6", accountId: "itau", dueDate: "2026-11-03", description: "Internet", amount: -12_990, categoryId: null, status: "paid" },
         { id: "p7", accountId: "itau", dueDate: "2026-12-10", description: "Condomínio", amount: -115_000, categoryId: null, status: "pending" },
       ],
-      budgets: [],
+      budgets: [
+        { categoryId: "escola", month: "2026-11", limit: 192_000 },
+        { categoryId: "condo", month: "2026-11", limit: 120_000 },
+      ],
+      categories: [
+        { id: "escola", name: "Escola", kind: "fixed", color: "#000" },
+        { id: "condo", name: "Condomínio", kind: "fixed", color: "#000" },
+        { id: "renda", name: "Renda", kind: "income", color: "#000" },
+      ],
     });
+    // Contas fixas: escola prevista 1.920 e nada pago nem previsto → falta tudo;
+    // condomínio previsto 1.200 já tem previsto avulso de 1.150 → falta 50.
+    expect(s.fixedRemaining).toEqual([
+      { categoryId: "escola", amount: 192_000 },
+      { categoryId: "condo", amount: 5_000 },
+    ]);
     expect(s.expensesPaid).toBe(624_010); // só o que saiu da conta (sem pagamento de fatura)
     // previstos pendentes (sem a fatura) + compras no cartão do mês líquidas do estorno
-    expect(s.expensesPending).toBe(115_000 + 108_000 + 33_981 + 40_000);
+    expect(s.expensesPending).toBe(115_000 + 108_000 + 33_981 + 40_000 + 192_000 + 5_000);
     expect(s.incomeReceived).toBe(1_420_000);
     expect(s.incomePending).toBe(92_000);
-    expect(s.projectedMonthEnd).toBe(1_238_040 + 92_000 - 296_981);
+    expect(s.projectedMonthEnd).toBe(1_238_040 + 92_000 - 296_981 - 197_000);
     expect(s.upcoming.map((p) => p.id)).toEqual(["p1", "p2", "p3", "p4"]);
   });
 

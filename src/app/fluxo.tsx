@@ -91,7 +91,7 @@ export default function Fluxo() {
         {out ? "A pagar" : "A receber"}
       </SectionTitle>
       <Card style={{ gap: 0, paddingVertical: 4 }}>
-        {data.planned.length === 0 && data.byCard.length === 0 ? (
+        {data.planned.length === 0 && data.byCard.length === 0 && s.fixedRemaining.length === 0 ? (
           <Text style={{ fontSize: 14, color: t.ink2, paddingVertical: 12 }}>{out ? "Nada previsto para pagar neste mês." : "Nada previsto para receber neste mês."}</Text>
         ) : null}
         {data.planned.map((p) =>
@@ -109,9 +109,25 @@ export default function Fluxo() {
             v.bill ? `/fatura/${v.bill.id}` : `/lancamentos`,
           );
         })}
+        {out
+          ? s.fixedRemaining.map((r) => {
+              const cat = f.categories.find((c) => c.id === r.categoryId);
+              const expected = f.budgets.find((b) => b.categoryId === r.categoryId && b.month === month)?.limit ?? 0;
+              return row(
+                `fixed-${r.categoryId}`,
+                "",
+                cat?.name ?? "Conta fixa",
+                r.amount === expected ? `conta fixa · previsto ${formatBRL(expected)} · ainda não paga ›` : `conta fixa · falta pagar de ${formatBRL(expected)} previstos ›`,
+                -r.amount,
+                "",
+                `/categoria/${r.categoryId}`,
+              );
+            })
+          : null}
         {out && cardTotal > 0 ? (
           <Text style={{ fontSize: 12, color: t.ink2, lineHeight: 17, paddingVertical: 10 }}>
             Compra no cartão conta como a pagar no mês da compra, mesmo que a fatura vença no mês seguinte.
+            {s.fixedRemaining.length ? " Conta fixa com valor previsto entra até ser paga; o valor se ajusta quando o pagamento aparece." : ""}
           </Text>
         ) : null}
       </Card>

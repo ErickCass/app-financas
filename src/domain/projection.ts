@@ -1,5 +1,5 @@
 import type { Cents } from "./money";
-import type { Account, Budget, ISODate, Planned, Transaction } from "./types";
+import type { Account, Budget, Category, ISODate, Planned, Transaction } from "./types";
 import { addMonths, dayOfMonth, daysInMonth, monthOf } from "./dates";
 import { categorySpent } from "./budget";
 
@@ -19,6 +19,8 @@ export interface MonthSummary {
   projectedMonthEnd: Cents;
   /** Parte variável estimada que ainda deve sair este mês (limites não usados, pelo ritmo). */
   variableStillToSpend: Cents;
+  /** Contas fixas com valor previsto que ainda não foram pagas no mês (previsto − pago − já previsto avulso). */
+  fixedRemaining: { categoryId: string; amount: Cents }[];
   upcoming: Planned[];
 }
 
@@ -35,6 +37,8 @@ export function buildMonthSummary(params: {
   transactions: Transaction[];
   planned: Planned[];
   budgets: Budget[];
+  /** Para saber quais categorias são contas fixas (com valor previsto em `budgets`). */
+  categories?: Category[];
   /** Previsão de gasto variável por categoria até o fim do mês (da tela de orçamento). */
   variableProjection?: { categoryId: string; projected: Cents }[];
 }): MonthSummary {
@@ -55,7 +59,22 @@ export function buildMonthSummary(params: {
   const cardPurchases = Math.max(-card.reduce((a, t) => a + t.amount, 0), 0);
 
   const pending = params.planned.filter((p) => p.status !== "paid" && inMonth(p.dueDate) && !p.creditCardStatement);
-  const expensesPending = pending.filter((p) => p.amount < 0).reduce((a, p) => a - p.amount, 0) + cardPurchases;
+
+  // Conta fixa com valor previsto (ex.: escola R$ 1.920) e ainda não paga: o que falta
+  // conta como a pagar. Desconta o que já saiu na categoria e o que já está previsto avulso nela.
+  const fixedRemaining = (params.categories ?? [])
+    .filter((c) => c.kind === "fixed")
+    .map((c) => {
+      const expected = params.budgets.find((b) => b.categoryId === c.id && b.month === month)?.limit ?? 0;
+      const spent = categorySpent(params.transactions, c.id, month);
+      const alreadyPlanned = pending.filter((p) => p.categoryId === c.id && p.amount < 0).reduce((a, p) => a - p.amount, 0);
+      return { categoryId: c.id, amount: Math.max(expected - spent - alreadyPlanned, 0) };
+    })
+    .filter((r) => r.amount > 0);
+  const fixedRemainingTotal = fixedRemaining.reduce((a, r) => a + r.amount, 0);
+
+  const expensesPending =
+    pending.filter((p) => p.amount < 0).reduce((a, p) => a - p.amount, 0) + cardPurchases + fixedRemainingTotal;
   const incomePending = pending.filter((p) => p.amount > 0).reduce((a, p) => a + p.amount, 0);
 
   // Gasto variável que ainda deve acontecer no mês. Compras no cartão saem
@@ -82,6 +101,7 @@ export function buildMonthSummary(params: {
     incomePending,
     projectedMonthEnd,
     variableStillToSpend,
+    fixedRemaining,
     upcoming,
   };
 }
