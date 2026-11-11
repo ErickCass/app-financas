@@ -6,7 +6,7 @@ import { useAuth } from "@/data/auth";
 import { useFinance } from "@/data/store";
 import { useBudgetView, useMonthSummary } from "@/data/selectors";
 import { formatBRL } from "@/domain/money";
-import { dayOfMonth, lastDayOfMonth, shortDate } from "@/domain/dates";
+import { dayOfMonth, lastDayOfMonth, monthOf, shortDate } from "@/domain/dates";
 import { BalanceChart } from "@/ui/BalanceChart";
 import { Card, Divider, PrimaryButton, ProgressBar, Screen } from "@/ui/components";
 import { SparkIcon } from "@/ui/icons";
@@ -34,6 +34,10 @@ export default function Inicio() {
   const lastDayLabel = shortDate(lastDayOfMonth(s.month));
   const attention = view.filter((v) => v.status === "estourou" || v.status === "vai").slice(0, 3);
   const top = view.find((v) => v.status === "estourou") ?? view[0];
+  // Faturas de cartão em aberto: é por elas que as compras no cartão chegam ao saldo.
+  const bills = f.planned
+    .filter((p) => p.creditCardStatement && p.status !== "paid")
+    .sort((x, y) => x.dueDate.localeCompare(y.dueDate));
   const expTotal = s.expensesPaid + s.expensesPending;
   const incTotal = s.incomeReceived + s.incomePending;
 
@@ -174,6 +178,37 @@ export default function Inicio() {
           </Card>
         </Pressable>
       </Link>
+
+      {bills.length > 0 ? (
+        <Card style={{ gap: 0, paddingBottom: 6 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingBottom: 2 }}>
+            <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>Faturas a pagar</Text>
+            <Text style={{ fontSize: 15, fontWeight: "600", color: t.ink }}>{money(bills.reduce((a, p) => a - p.amount, 0))}</Text>
+          </View>
+          <Text style={{ fontSize: 13, color: t.ink2, paddingBottom: 4 }}>
+            Compras no cartão só saem do saldo no vencimento da fatura.
+          </Text>
+          {bills.map((p, i) => (
+            <Link key={p.id} href={`/fatura/${p.id}`} asChild>
+              <Pressable
+                accessibilityRole="link"
+                style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: t.line }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text numberOfLines={1} style={{ fontSize: 16, color: t.ink }}>{p.description}</Text>
+                  <Text style={{ fontSize: 13, color: t.ink2 }}>
+                    Vence {shortDate(p.dueDate)} · {monthOf(p.dueDate) === monthOf(f.today) ? "desconta do saldo deste mês" : "desconta no mês que vem"}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: "600", color: t.ink }}>
+                  {p.estimated ? "≈ " : ""}
+                  {money(-p.amount)}
+                </Text>
+              </Pressable>
+            </Link>
+          ))}
+        </Card>
+      ) : null}
 
       <Card style={{ gap: 0, paddingBottom: 6 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingBottom: 6 }}>
