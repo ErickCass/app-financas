@@ -27,7 +27,8 @@ export function AccountMark({ account, size = 28 }: { account: Pick<Account, "na
   const color = accountColor(account);
   if (account.image) {
     // Foto do próprio cartão: retrato (como os cartões atuais) ou paisagem, conforme a imagem.
-    const h = Math.round(size * 0.95);
+    // Um pouco maior que o cartãozinho desenhado: foto pequena demais vira um borrão.
+    const h = Math.round(size * 1.15);
     const w = Math.round(h * 0.63);
     return (
       <Image
