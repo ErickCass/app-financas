@@ -34,7 +34,7 @@ interface FinanceActions {
   addTransaction(t: Omit<Transaction, "id">): Promise<void>;
   setAccountBalance(accountId: string, balance: number): Promise<void>;
   /** Classifica um grupo de lançamentos de uma vez (e ensina a regra pela descrição). */
-  categorizeMany(ids: string[], categoryId: string): Promise<void>;
+  categorizeMany(ids: string[], categoryId: string, learn?: boolean): Promise<void>;
   /** Marca lançamentos como transferência entre contas próprias (não contam no orçamento). */
   markInternal(ids: string[]): Promise<void>;
   createCategory(name: string, kind: Category["kind"]): Promise<void>;
@@ -152,14 +152,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           },
         );
       },
-      categorizeMany: (ids: string[], categoryId: string) => {
+      categorizeMany: (ids: string[], categoryId: string, learn = true) => {
         const set = new Set(ids);
         const first = data.transactions.find((t) => set.has(t.id));
         return optimistic(
           (d) => ({ ...d, transactions: d.transactions.map((t) => (set.has(t.id) ? { ...t, categoryId } : t)) }),
           async () => {
             await remote.setCategoryForMany(ids, categoryId);
-            if (first) await remote.learnRule(first.description, categoryId, userId!);
+            if (first && learn) await remote.learnRule(first.description, categoryId, userId!);
           },
         );
       },
