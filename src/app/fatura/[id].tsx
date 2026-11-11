@@ -39,6 +39,7 @@ export default function FaturaDetalhe() {
   const groups = [...byCategory.entries()]
     .map(([catId, v]) => ({ cat: f.categories.find((c) => c.id === catId), ...v }))
     .sort((a, b) => b.cents - a.cents);
+  const positiveTotal = groups.filter((g) => g.cents > 0).reduce((a, g) => a + g.cents, 0);
   const catName = (catId: string | null) => f.categories.find((c) => c.id === catId)?.name ?? "Sem categoria";
 
   return (
@@ -76,7 +77,10 @@ export default function FaturaDetalhe() {
         <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>Por categoria</Text>
         <ProgressBar
           height={14}
-          segments={groups.map((g) => ({ value: total ? g.cents / total : 0, color: g.cat?.color ?? t.ink3 }))}
+          // Só os grupos positivos entram na barra; um estorno (negativo) faria as fatias passarem de 100%.
+          segments={groups
+            .filter((g) => g.cents > 0)
+            .map((g) => ({ value: g.cents / Math.max(positiveTotal, 1), color: g.cat?.color ?? t.ink3 }))}
         />
         {groups.map((g, i) => {
           const row = (
@@ -98,8 +102,10 @@ export default function FaturaDetalhe() {
               <Text style={{ width: 96, textAlign: "right", fontSize: 15, fontWeight: "600", color: t.ink }}>{formatBRL(g.cents)}</Text>
             </View>
           );
-          return g.cat?.kind === "variable" ? (
-            <Link key={g.cat.id} href={`/categoria/${g.cat.id}`} asChild>
+          // Categoria de gasto abre a tela dela; "Sem categoria" leva para classificar.
+          const href = !g.cat ? "/classificar" : g.cat.kind !== "income" ? `/categoria/${g.cat.id}` : null;
+          return href ? (
+            <Link key={g.cat?.id ?? "sem"} href={href as never} asChild>
               <Pressable accessibilityRole="link">{row}</Pressable>
             </Link>
           ) : (
