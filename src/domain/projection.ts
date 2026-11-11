@@ -41,15 +41,21 @@ export function buildMonthSummary(params: {
   const month = monthOf(params.today);
   const inMonth = (d: ISODate) => monthOf(d) === month;
 
-  // Visão de caixa: o que já saiu ou entrou nas contas. Compras no cartão
-  // ficam de fora aqui porque saem pela fatura, que está nos previstos.
+  // Regra do app: tudo que é comprado no cartão dentro do mês é pago dentro do mês.
+  // Então a compra no cartão conta como despesa "a pagar" no mês da compra, e a
+  // fatura em si não entra (seria contar duas vezes). Pagamento de fatura é
+  // transferência interna: já está refletido no saldo da conta.
   const cardAccounts = new Set(params.accounts.filter((a) => a.kind === "credit_card").map((a) => a.id));
-  const real = params.transactions.filter((t) => inMonth(t.date) && !t.isCardPayment && !cardAccounts.has(t.accountId));
-  const expensesPaid = real.filter((t) => t.amount < 0).reduce((a, t) => a - t.amount, 0);
-  const incomeReceived = real.filter((t) => t.amount > 0).reduce((a, t) => a + t.amount, 0);
+  const monthTx = params.transactions.filter((t) => inMonth(t.date) && !t.isCardPayment);
+  const cash = monthTx.filter((t) => !cardAccounts.has(t.accountId));
+  const card = monthTx.filter((t) => cardAccounts.has(t.accountId));
+  const expensesPaid = cash.filter((t) => t.amount < 0).reduce((a, t) => a - t.amount, 0);
+  const incomeReceived = cash.filter((t) => t.amount > 0).reduce((a, t) => a + t.amount, 0);
+  // Compras no cartão, líquidas de estornos, nunca abaixo de zero.
+  const cardPurchases = Math.max(-card.reduce((a, t) => a + t.amount, 0), 0);
 
-  const pending = params.planned.filter((p) => p.status !== "paid" && inMonth(p.dueDate));
-  const expensesPending = pending.filter((p) => p.amount < 0).reduce((a, p) => a - p.amount, 0);
+  const pending = params.planned.filter((p) => p.status !== "paid" && inMonth(p.dueDate) && !p.creditCardStatement);
+  const expensesPending = pending.filter((p) => p.amount < 0).reduce((a, p) => a - p.amount, 0) + cardPurchases;
   const incomePending = pending.filter((p) => p.amount > 0).reduce((a, p) => a + p.amount, 0);
 
   // Gasto variável que ainda deve acontecer no mês. Compras no cartão saem
@@ -90,15 +96,16 @@ export function projectYearEnd(params: {
   recurringPlanned: { amount: Cents }[]; // previstos mensais recorrentes
   monthlyVariableLimits: Cents;
   /** Previstos avulsos já conhecidos (ex.: fatura que vence mês que vem). */
-  planned?: Pick<Planned, "dueDate" | "amount" | "status">[];
+  planned?: Pick<Planned, "dueDate" | "amount" | "status" | "creditCardStatement">[];
 }): Cents {
   const month = monthOf(params.today);
   const year = month.slice(0, 4);
   let balance = params.monthEnd;
   for (let m = addMonths(month, 1); m.slice(0, 4) === year; m = addMonths(m, 1)) {
     const net = params.recurringPlanned.reduce((a, p) => a + p.amount, 0);
+    // Faturas ficam de fora: as compras já foram contadas no mês em que aconteceram.
     const oneOff = (params.planned ?? [])
-      .filter((p) => p.status !== "paid" && monthOf(p.dueDate) === m)
+      .filter((p) => p.status !== "paid" && !p.creditCardStatement && monthOf(p.dueDate) === m)
       .reduce((a, p) => a + p.amount, 0);
     balance += net + oneOff - params.monthlyVariableLimits;
   }

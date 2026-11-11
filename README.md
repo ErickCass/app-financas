@@ -84,3 +84,9 @@ Tela **Importar** (aba Lançamentos, Início e Ajustes). Lê no próprio aparelh
   aplica às compras iguais sem categoria e guarda a regra para as próximas importações.
 - PDFs usam o pdf.js servido de `public/pdfjs` (copiado de `node_modules` no `postinstall`); no iPhone, por
   enquanto, só CSV.
+
+## Regra: compra no cartão é paga no próprio mês
+
+Por decisão do produto, toda compra no cartão conta como despesa **a pagar no mês da compra** (orçamento e
+saldo projetado). A fatura não entra no saldo projetado (seria contar duas vezes); o pagamento dela é
+transferência interna e já aparece no saldo real da conta quando acontece.

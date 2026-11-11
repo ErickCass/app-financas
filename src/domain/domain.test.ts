@@ -160,11 +160,12 @@ describe("resumo do mês (números do mockup)", () => {
         tx({ id: "sal", date: "2026-11-05", amount: 1_420_000, categoryId: "renda" }),
         tx({ id: "g1", date: "2026-11-03", amount: -624_010 }),
         tx({ id: "fat", date: "2026-11-02", amount: -100_000, isCardPayment: true }),
-        tx({ id: "cc", date: "2026-11-04", amount: -50_000, accountId: "visa" }), // compra no cartão: sai pela fatura
+        tx({ id: "cc", date: "2026-11-04", amount: -50_000, accountId: "visa" }), // compra no cartão: a pagar no próprio mês
+        tx({ id: "est", date: "2026-11-05", amount: 10_000, accountId: "visa" }), // estorno no cartão
       ],
       planned: [
         { id: "p1", accountId: "itau", dueDate: "2026-11-10", description: "Condomínio", amount: -115_000, categoryId: null, status: "pending" },
-        { id: "p2", accountId: "itau", dueDate: "2026-11-12", description: "Fatura Visa", amount: -231_044, categoryId: null, status: "pending" },
+        { id: "p2", accountId: "itau", dueDate: "2026-11-12", description: "Fatura Visa", amount: -231_044, categoryId: null, status: "pending", creditCardStatement: { accountId: "visa", month: "2026-11" } },
         { id: "p3", accountId: "itau", dueDate: "2026-11-14", description: "Reembolso", amount: 92_000, categoryId: null, status: "pending" },
         { id: "p4", accountId: "itau", dueDate: "2026-11-15", description: "Escola", amount: -108_000, categoryId: null, status: "pending" },
         { id: "p5", accountId: "itau", dueDate: "2026-11-20", description: "Saúde", amount: -33_981, categoryId: null, status: "pending" },
@@ -173,11 +174,12 @@ describe("resumo do mês (números do mockup)", () => {
       ],
       budgets: [],
     });
-    expect(s.expensesPaid).toBe(624_010); // sem pagamento de fatura e sem compra no cartão
-    expect(s.expensesPending).toBe(488_025);
+    expect(s.expensesPaid).toBe(624_010); // só o que saiu da conta (sem pagamento de fatura)
+    // previstos pendentes (sem a fatura) + compras no cartão do mês líquidas do estorno
+    expect(s.expensesPending).toBe(115_000 + 108_000 + 33_981 + 40_000);
     expect(s.incomeReceived).toBe(1_420_000);
     expect(s.incomePending).toBe(92_000);
-    expect(s.projectedMonthEnd).toBe(842_015); // R$ 8.420,15
+    expect(s.projectedMonthEnd).toBe(1_238_040 + 92_000 - 296_981);
     expect(s.upcoming.map((p) => p.id)).toEqual(["p1", "p2", "p3", "p4"]);
   });
 
@@ -192,7 +194,7 @@ describe("resumo do mês (números do mockup)", () => {
     ).toBe(842_015 + 1_512_000 - 298_711 - 662_000);
   });
 
-  it("projeção do ano desconta a fatura que vence nos próximos meses", () => {
+  it("projeção do ano desconta previstos dos próximos meses, mas não faturas", () => {
     expect(
       projectYearEnd({
         today: "2026-11-10",
@@ -200,12 +202,13 @@ describe("resumo do mês (números do mockup)", () => {
         recurringPlanned: [],
         monthlyVariableLimits: 500_000,
         planned: [
-          { dueDate: "2026-12-01", amount: -815_652, status: "pending" },
+          { dueDate: "2026-12-01", amount: -815_652, status: "pending", creditCardStatement: { accountId: "nu", month: "2026-12" } }, // fatura: compras já contadas
+          { dueDate: "2026-12-10", amount: -115_000, status: "pending" },
           { dueDate: "2026-11-20", amount: -10_000, status: "pending" }, // mês atual: já está no monthEnd
           { dueDate: "2027-01-05", amount: -99_999, status: "pending" }, // ano que vem
         ],
       }),
-    ).toBe(-1_054_917 - 815_652 - 500_000);
+    ).toBe(-1_054_917 - 115_000 - 500_000);
   });
 
   it("conhece o tamanho dos meses", () => {

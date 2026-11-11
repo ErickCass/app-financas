@@ -6,7 +6,7 @@ import { useAuth } from "@/data/auth";
 import { useFinance } from "@/data/store";
 import { useBudgetView, useMonthSummary } from "@/data/selectors";
 import { formatBRL } from "@/domain/money";
-import { dayOfMonth, lastDayOfMonth, monthOf, shortDate } from "@/domain/dates";
+import { dayOfMonth, lastDayOfMonth, shortDate } from "@/domain/dates";
 import { BalanceChart } from "@/ui/BalanceChart";
 import { Card, Divider, PrimaryButton, ProgressBar, Screen } from "@/ui/components";
 import { SparkIcon } from "@/ui/icons";
@@ -186,7 +186,7 @@ export default function Inicio() {
             <Text style={{ fontSize: 15, fontWeight: "600", color: t.ink }}>{money(bills.reduce((a, p) => a - p.amount, 0))}</Text>
           </View>
           <Text style={{ fontSize: 13, color: t.ink2, paddingBottom: 4 }}>
-            Compras no cartão só saem do saldo no vencimento da fatura.
+            As compras já contam nas despesas do mês em que foram feitas; a fatura não desconta de novo.
           </Text>
           {bills.map((p, i) => (
             <Link key={p.id} href={`/fatura/${p.id}`} asChild>
@@ -197,7 +197,7 @@ export default function Inicio() {
                 <View style={{ flex: 1 }}>
                   <Text numberOfLines={1} style={{ fontSize: 16, color: t.ink }}>{p.description}</Text>
                   <Text style={{ fontSize: 13, color: t.ink2 }}>
-                    Vence {shortDate(p.dueDate)} · {monthOf(p.dueDate) === monthOf(f.today) ? "desconta do saldo deste mês" : "desconta no mês que vem"}
+                    Vence {shortDate(p.dueDate)} · toque para ver as compras
                   </Text>
                 </View>
                 <Text style={{ fontSize: 16, fontWeight: "600", color: t.ink }}>
