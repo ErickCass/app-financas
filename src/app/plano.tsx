@@ -45,9 +45,10 @@ export default function Plano() {
     return Math.max(planned, categorySpent(f.transactions, c.id, month));
   };
 
-  const [values, setValues] = useState<Record<string, number>>(() =>
+  const [initial] = useState<Record<string, number>>(() =>
     Object.fromEntries(f.categories.map((c) => [c.id, saved(c.id) ?? suggestion(c)])),
   );
+  const [values, setValues] = useState<Record<string, number>>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sort, setSort] = useState<"valor" | "nome">("valor");
@@ -92,7 +93,10 @@ export default function Plano() {
       for (const c of f.categories) {
         const current = f.budgets.find((b) => b.categoryId === c.id && b.month === month)?.limit;
         const next = values[c.id] ?? 0;
-        if (current !== next && !(current === undefined && next === 0)) await f.setBudgetLimit(c.id, month, next);
+        // Grava também o zero quando a tela mostrava um valor herdado (mês anterior ou sugestão):
+        // senão, ao voltar, o valor herdado reapareceria.
+        const shown = initial[c.id] ?? 0;
+        if (current !== next && !(current === undefined && next === 0 && shown === 0)) await f.setBudgetLimit(c.id, month, next);
       }
       router.back();
     } catch (e) {

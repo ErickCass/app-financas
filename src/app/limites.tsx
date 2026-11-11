@@ -24,9 +24,10 @@ export default function Limites() {
     f.budgets.find((b) => b.categoryId === id && b.month === month)?.limit ??
     f.budgets.find((b) => b.categoryId === id && b.month === previous)?.limit ??
     0;
-  const [values, setValues] = useState<Record<string, number>>(() =>
+  const [initial] = useState<Record<string, number>>(() =>
     Object.fromEntries(f.categories.filter((c) => c.kind !== "income").map((c) => [c.id, limitOf(c.id)])),
   );
+  const [values, setValues] = useState<Record<string, number>>(initial);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -45,7 +46,10 @@ export default function Limites() {
       for (const c of f.categories.filter((x) => x.kind !== "income")) {
         const current = f.budgets.find((b) => b.categoryId === c.id && b.month === month)?.limit;
         const next = values[c.id] ?? 0;
-        if (current !== next && !(current === undefined && next === 0)) await f.setBudgetLimit(c.id, month, next);
+        // Grava também o zero quando a tela mostrava um valor herdado (mês anterior ou sugestão):
+        // senão, ao voltar, o valor herdado reapareceria.
+        const shown = initial[c.id] ?? 0;
+        if (current !== next && !(current === undefined && next === 0 && shown === 0)) await f.setBudgetLimit(c.id, month, next);
       }
       router.back();
     } catch (e) {
