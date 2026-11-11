@@ -36,7 +36,9 @@ export default function CategoriaDetalhe() {
   const crossedOn = overrunDay(v.transactions, v.limit);
   const accountName = (accountId: string) => f.accounts.find((a) => a.id === accountId)?.name ?? "";
   const byKind = countBy(v.transactions, (tx) => f.accounts.find((a) => a.id === tx.accountId)?.kind ?? "");
-  const others = f.categories.filter((c) => c.kind !== "income" && c.id !== v.category.id);
+  const others = f.categories
+    .filter((c) => c.kind !== "income" && c.id !== v.category.id)
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   const statementPlanned = (tx: Transaction) =>
     f.planned.find((p) => p.creditCardStatement?.accountId === tx.accountId && p.creditCardStatement.month === tx.statementMonth);
 

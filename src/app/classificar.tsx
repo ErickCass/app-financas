@@ -4,7 +4,7 @@ import { Link } from "expo-router";
 import { useFinance } from "@/data/store";
 import { formatBRL } from "@/domain/money";
 import { shortDate } from "@/domain/dates";
-import type { Category, Transaction } from "@/domain/types";
+import type { Transaction } from "@/domain/types";
 import { rulePattern } from "@/import/categorize";
 import { Card, Screen } from "@/ui/components";
 import { NavBar } from "@/ui/NavBar";
@@ -43,10 +43,8 @@ export default function Classificar() {
   }, [f.transactions]);
 
   const pending = groups.reduce((a, g) => a + g.items.length, 0);
-  const choices = (g: Group): Category[] => {
-    const order: Category["kind"][] = g.total > 0 ? ["income", "variable", "fixed"] : ["variable", "fixed", "income"];
-    return [...f.categories].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || a.name.localeCompare(b.name));
-  };
+  // Ordem alfabética única, para achar a categoria de relance.
+  const choices = [...f.categories].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   async function assign(g: Group, categoryId: string) {
     setOpen(null);
@@ -114,7 +112,7 @@ export default function Classificar() {
                       </View>
                     ) : null}
                     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                      {choices(g).map((c) => (
+                      {choices.map((c) => (
                         <Pressable
                           key={c.id}
                           accessibilityRole="button"
