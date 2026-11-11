@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Link } from "expo-router";
 import { useFinance } from "@/data/store";
@@ -13,6 +14,10 @@ export default function Orcamento() {
   const f = useFinance();
   const view = useBudgetView();
   const fixed = useBudgetView("fixed");
+  const [sort, setSort] = useState<"risco" | "gasto" | "limite">("risco");
+  // "Por risco" é a ordem padrão da view (estourou → vai → ritmo → sobra); as outras ordenam por valor.
+  const sorted = <T extends { spent: number; limit: number }>(list: T[]): T[] =>
+    sort === "risco" ? list : [...list].sort((a, b) => (sort === "gasto" ? b.spent - a.spent : b.limit - a.limit));
   const month = monthOf(f.today);
   const day = dayOfMonth(f.today);
   const total = daysInMonth(month);
@@ -146,8 +151,27 @@ export default function Orcamento() {
       >
         Por categoria
       </SectionTitle>
+      <View style={{ flexDirection: "row", padding: 2, borderRadius: 10, backgroundColor: t.track, gap: 2 }}>
+        {(
+          [
+            ["risco", "Por risco"],
+            ["gasto", "Maior gasto"],
+            ["limite", "Maior limite"],
+          ] as const
+        ).map(([k, label]) => (
+          <Pressable
+            key={k}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: sort === k }}
+            onPress={() => setSort(k)}
+            style={{ flex: 1, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: sort === k ? t.card : "transparent" }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: sort === k ? "600" : "500", color: t.ink }}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
       <Card style={{ gap: 0, paddingVertical: 4 }}>
-        {rows.map((v, i) => (
+        {sorted(rows).map((v, i) => (
           <Link key={v.category.id} href={`/categoria/${v.category.id}`} asChild>
             <Pressable
               accessibilityRole="link"
@@ -209,7 +233,7 @@ export default function Orcamento() {
         <>
           <SectionTitle>Contas fixas</SectionTitle>
           <Card style={{ gap: 0, paddingVertical: 4 }}>
-            {fixed.map((v, i) => (
+            {sorted(fixed).map((v, i) => (
               <Link key={v.category.id} href={`/categoria/${v.category.id}`} asChild>
                 <Pressable
                   accessibilityRole="link"

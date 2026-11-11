@@ -50,6 +50,9 @@ export default function Plano() {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sort, setSort] = useState<"valor" | "nome">("valor");
+  const ordered = (cats: Category[]) =>
+    sort === "nome" ? cats : [...cats].sort((a, b) => (values[b.id] ?? 0) - (values[a.id] ?? 0) || a.name.localeCompare(b.name, "pt-BR"));
 
   const total = (cats: Category[]) => cats.reduce((a, c) => a + (values[c.id] ?? 0), 0);
   const incomePlan = total(groups.income);
@@ -104,7 +107,7 @@ export default function Plano() {
       <SectionTitle right={<Text style={{ fontSize: 15, fontWeight: "600", color: t.ink }}>{sign === "+" ? "+" : "−"} {formatBRL(total(cats))}</Text>}>{title}</SectionTitle>
       <Card style={{ gap: 0, paddingVertical: 4 }}>
         {cats.length === 0 ? <Text style={{ fontSize: 14, color: t.ink2, paddingVertical: 12 }}>Nenhuma categoria. Crie em Categorias e limites.</Text> : null}
-        {cats.map((c, i) => {
+        {ordered(cats).map((c, i) => {
           const real = actual(c);
           const plan = values[c.id] ?? 0;
           return (
@@ -160,6 +163,25 @@ export default function Plano() {
         <Row label={`Saldo em ${monthLabel(month).toLowerCase()} se o plano for cumprido`} value={monthEndIfPlan} hint={`hoje ${formatBRL(liquidBalance(f.accounts))} · projeção pelo ritmo real: ${formatBRL(s.projectedMonthEnd)}`} />
         <Row label={`Saldo em 31/dez/${year} repetindo este plano`} value={yearEndIfPlan} hint={`${monthsLeft} ${monthsLeft === 1 ? "mês" : "meses"} × sobra planejada`} />
       </Card>
+
+      <View style={{ flexDirection: "row", padding: 2, borderRadius: 10, backgroundColor: t.track, gap: 2 }}>
+        {(
+          [
+            ["valor", "Maior valor"],
+            ["nome", "A–Z"],
+          ] as const
+        ).map(([k, label]) => (
+          <Pressable
+            key={k}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: sort === k }}
+            onPress={() => setSort(k)}
+            style={{ flex: 1, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: sort === k ? t.card : "transparent" }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: sort === k ? "600" : "500", color: t.ink }}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
 
       {section("Renda planejada", groups.income, "+")}
       {section("Contas fixas", groups.fixed, "−")}
