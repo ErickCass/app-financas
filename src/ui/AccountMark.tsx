@@ -13,6 +13,7 @@ export function accountColor(a: Pick<Account, "name" | "kind" | "color">): strin
   if (a.color) return a.color;
   const n = a.name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   if (n.includes("nubank") || n.includes("nu ")) return "#820AD1";
+  if (n.includes("flash")) return "#FF2D6F";
   if (n.includes("itau")) return "#EC7000";
   if (n.includes("latam") || n.includes("black") || n.includes("infinite")) return "#1D1D1F";
   if (n.includes("inter")) return "#FF7A00";
@@ -39,7 +40,7 @@ export function AccountMark({ account, size = 28 }: { account: Pick<Account, "na
       />
     );
   }
-  if (account.kind === "credit_card") {
+  if (account.kind === "credit_card" || account.kind === "benefit") {
     const w = size;
     const h = Math.round(size * 0.66);
     return (

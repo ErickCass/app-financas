@@ -115,7 +115,7 @@ export function buildImportPlan(args: {
 
   const groups = new Map<string | null, { total: Cents; count: number }>();
   for (const r of newRows) {
-    if (r.item.internal || (r.item.amount > 0 && statement.kind === "checking")) continue;
+    if (r.item.internal || (r.item.amount > 0 && statement.kind !== "credit_card")) continue;
     const g = groups.get(r.categoryId) ?? { total: 0, count: 0 };
     groups.set(r.categoryId, { total: g.total - r.item.amount, count: g.count + 1 });
   }

@@ -1,8 +1,8 @@
 import type { Cents } from "@/domain/money";
 import type { ISODate } from "@/domain/types";
 
-export type Institution = "itau" | "nubank";
-export type StatementKind = "credit_card" | "checking";
+export type Institution = "itau" | "nubank" | "flash";
+export type StatementKind = "credit_card" | "checking" | "benefit";
 
 /** Um lançamento lido do arquivo, antes de virar transação. */
 export interface ParsedItem {

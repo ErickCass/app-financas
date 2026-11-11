@@ -38,6 +38,8 @@ export default function Inicio() {
   const bills = f.planned
     .filter((p) => p.creditCardStatement && p.status !== "paid")
     .sort((x, y) => x.dueDate.localeCompare(y.dueDate));
+  // Vale-alimentação e afins: saldo próprio, mostrado à parte do caixa.
+  const benefits = f.accounts.filter((a) => a.kind === "benefit");
   const expTotal = s.expensesPaid + s.expensesPending;
   const incTotal = s.incomeReceived + s.incomePending;
 
@@ -114,6 +116,11 @@ export default function Inicio() {
             Hoje {money(s.balanceToday)} ·{" "}
             <Text style={{ color: delta < 0 ? t.neg : t.pos, fontWeight: "600" }}>{money(delta, { signed: true })}</Text> até o fim do mês
           </Text>
+          {benefits.length > 0 ? (
+            <Text style={{ fontSize: 13, color: t.ink2 }}>
+              Benefícios à parte: {benefits.map((a) => `${a.name} ${money(a.balance)}`).join(" · ")}
+            </Text>
+          ) : null}
         </View>
         <BalanceChart points={s.trajectory} />
         <Divider />

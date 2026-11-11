@@ -155,6 +155,7 @@ describe("resumo do mês (números do mockup)", () => {
       accounts: [
         { id: "itau", name: "Itaú", kind: "checking", balance: 1_238_040, balanceUpdatedAt: "" },
         { id: "visa", name: "Visa", kind: "credit_card", balance: 0, balanceUpdatedAt: "" },
+        { id: "flash", name: "Flash", kind: "benefit", balance: 51_029, balanceUpdatedAt: "" },
       ],
       transactions: [
         tx({ id: "sal", date: "2026-11-05", amount: 1_420_000, categoryId: "renda" }),
@@ -162,6 +163,7 @@ describe("resumo do mês (números do mockup)", () => {
         tx({ id: "fat", date: "2026-11-02", amount: -100_000, isCardPayment: true }),
         tx({ id: "cc", date: "2026-11-04", amount: -50_000, accountId: "visa" }), // compra no cartão: a pagar no próprio mês
         tx({ id: "est", date: "2026-11-05", amount: 10_000, accountId: "visa" }), // estorno no cartão
+        tx({ id: "va", date: "2026-11-06", amount: -90_000, accountId: "flash" }), // vale-alimentação: fora do caixa
       ],
       planned: [
         { id: "p1", accountId: "itau", dueDate: "2026-11-10", description: "Condomínio", amount: -115_000, categoryId: "condo", status: "pending" },

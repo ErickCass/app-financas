@@ -51,7 +51,9 @@ export function buildMonthSummary(params: {
   // fatura em si não entra (seria contar duas vezes). Pagamento de fatura é
   // transferência interna: já está refletido no saldo da conta.
   const cardAccounts = new Set(params.accounts.filter((a) => a.kind === "credit_card").map((a) => a.id));
-  const monthTx = params.transactions.filter((t) => inMonth(t.date) && !t.isCardPayment);
+  // Benefício (vale-alimentação) tem saldo próprio: não é caixa nem vira fatura.
+  const benefitAccounts = new Set(params.accounts.filter((a) => a.kind === "benefit").map((a) => a.id));
+  const monthTx = params.transactions.filter((t) => inMonth(t.date) && !t.isCardPayment && !benefitAccounts.has(t.accountId));
   const cash = monthTx.filter((t) => !cardAccounts.has(t.accountId));
   const card = monthTx.filter((t) => cardAccounts.has(t.accountId));
   const expensesPaid = cash.filter((t) => t.amount < 0).reduce((a, t) => a - t.amount, 0);

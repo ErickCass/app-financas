@@ -3,7 +3,7 @@ import type { Cents } from "./money";
 /** Data no formato ISO "AAAA-MM-DD" (sem fuso). */
 export type ISODate = string;
 
-export type AccountKind = "checking" | "credit_card" | "investment" | "cash";
+export type AccountKind = "checking" | "credit_card" | "investment" | "cash" | "benefit"; // benefit: vale-alimentação, saldo próprio fora do caixa
 
 export interface Account {
   id: string;

@@ -98,3 +98,9 @@ transferência interna e já aparece no saldo real da conta quando acontece.
 - Previsto avulso ou mensal (tabela `planned`) é baixado automaticamente quando, na importação, chega um lançamento do
   mesmo mês, mesmo sinal, valor dentro de 15% (25% se "valor aproximado") e mesma categoria ou descrição parecida.
   O lançamento fica ligado pelo `planned_id`. Regras em `src/domain/reconcile.ts`.
+
+## Cartão de benefícios (Flash)
+
+Conta do tipo `benefit`: saldo próprio, fora do caixa. Cargas da empresa são internas (não são renda); as
+compras entram no orçamento das categorias, mas não no "a pagar" nem no saldo projetado da conta corrente.
+Importação pelo CSV do app da Flash. Migração `20261111100000_benefit_accounts.sql` libera o tipo na tabela.

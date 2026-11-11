@@ -21,7 +21,7 @@ type Phase =
   | { name: "done"; inserted: number; kind: ParsedStatement["kind"]; settled: number };
 
 const NEW = "__new__";
-const INSTITUTION: Record<ParsedStatement["institution"], string> = { itau: "Itaú", nubank: "Nubank" };
+const INSTITUTION: Record<ParsedStatement["institution"], string> = { itau: "Itaú", nubank: "Nubank", flash: "Flash" };
 
 /** Importar fatura de cartão ou extrato de conta, com prévia antes de gravar. */
 export default function Importar() {
@@ -114,7 +114,9 @@ export default function Importar() {
           <Checks statement={preview.statement} mismatches={plan.mismatches} />
 
           <Card style={{ gap: 10 }}>
-            <Text style={{ fontSize: 13, color: t.ink2 }}>{preview.statement.kind === "credit_card" ? "Lançar no cartão" : "Lançar na conta"}</Text>
+            <Text style={{ fontSize: 13, color: t.ink2 }}>
+              {preview.statement.kind === "credit_card" ? "Lançar no cartão" : preview.statement.kind === "benefit" ? "Lançar no cartão de benefícios" : "Lançar na conta"}
+            </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {f.accounts
                 .filter((a) => a.kind === preview.statement.kind)
@@ -205,7 +207,9 @@ export default function Importar() {
           <Text style={{ fontSize: 15, color: t.ink2, textAlign: "center", lineHeight: 21 }}>
             {phase.kind === "credit_card"
               ? "As compras já contam no orçamento de cada categoria, pela data da compra."
-              : "O saldo da conta foi atualizado com o do extrato."}
+              : phase.kind === "benefit"
+                ? "As compras contam no orçamento das categorias; o saldo do benefício foi atualizado."
+                : "O saldo da conta foi atualizado com o do extrato."}
             {phase.settled > 0 ? ` ${phase.settled} conta${phase.settled > 1 ? "s" : ""} prevista${phase.settled > 1 ? "s" : ""} ${phase.settled > 1 ? "foram dadas" : "foi dada"} como paga${phase.settled > 1 ? "s" : ""}.` : ""}
           </Text>
           <View style={{ alignSelf: "stretch", gap: 8, marginTop: 8 }}>
@@ -227,7 +231,7 @@ function defaultAccount(st: ParsedStatement, accounts: Account[]): string {
   const byLast4 = st.last4 ? sameKind.find((a) => a.name.includes(st.last4!)) : undefined;
   const byBank = sameKind.find((a) => a.name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().includes(bank));
   if (byLast4 ?? byBank) return (byLast4 ?? byBank)!.id;
-  if (st.kind === "checking" && sameKind.length === 1) return sameKind[0]!.id;
+  if ((st.kind === "checking" || st.kind === "benefit") && sameKind.length === 1) return sameKind[0]!.id;
   return NEW;
 }
 
@@ -237,6 +241,7 @@ function PickStep({ busy, demo, onChoose }: { busy: boolean; demo: boolean; onCh
     ["Fatura do cartão Itaú", "PDF da fatura fechada, ou planilha (.xlsx) da fatura aberta"],
     ["Extrato da conta Itaú", "PDF do extrato da conta corrente"],
     ["Fatura do Nubank", "CSV: no app, Cartão › Fatura › Exportar fatura"],
+    ["Extrato da Flash", "CSV do extrato do cartão de benefícios"],
   ];
   return (
     <>
@@ -284,7 +289,9 @@ function Summary({
   const title =
     st.kind === "credit_card"
       ? `Fatura ${bank}${st.dueDate ? ` · vence ${shortDate(st.dueDate)}` : ""}`
-      : `Extrato ${bank}`;
+      : st.kind === "benefit"
+        ? `Cartão de benefícios ${bank}`
+        : `Extrato ${bank}`;
   return (
     <Card style={{ gap: 6 }}>
       <Text style={{ fontSize: 15, color: t.ink2, fontWeight: "600" }}>{title}</Text>

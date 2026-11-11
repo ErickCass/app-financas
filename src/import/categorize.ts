@@ -31,7 +31,7 @@ const KEYWORDS: [RegExp, string][] = [
   // Assinaturas antes de Compras (Amazon Prime x Amazon) e de Lazer
   [/\b(apple com bill|netflix|spotify|amazon ?prime|amazonprime|prime video|youtub|google one|disney|hbo|globoplay|deezer|anthropic|openai|chatgpt|melimais|icloud|microsoft|adobe|uber one|clube latam|ifood club|manus ai|companyhero)\b/, "Assinaturas"],
   [/\b(mercadolivre|mercado livre|mercado (?=\S*shop)|amazon|amzn|amazonmktplc|shopee|magalu|magazine luiza|ri happy|renner|zara|riachuelo|centauro|netshoes|target|marshalls|nordstrom|olx|pet ?love|petsupermark|petz|cobasi|nupay)\b/, "Compras"],
-  [/\b(carrefour|hortifruti|hortifrut|frutaria|supermerc\w*|atacad\w*|assai|pao de acucar|st marche|sonda|market4u|acougue|sacolao|feira)\b|hortifrut|supermerc/, "Mercado"],
+  [/\b(carrefour|hortifruti|hortifrut|frutaria|supermerc\w*|atacad\w*|assai|pao de acucar|st marche|sonda|market4u|mkt4u|hacs home market|home market|acougue|sacolao|feira)\b|hortifrut|supermerc/, "Mercado"],
   [/\b(ifd|ifood|restaurant\w*|burguer|burger|pizz\w*|sushi\w*|bbq|grill|esfiha\w*|sorvet\w*|cacau ?show|cacaushow|doce|cafe\w*|bakery|steak\w*|shake shack|starbucks|mcdonald\w*|outback|spoleto|bistro|bacio di latte|lanch\w*|padaria|bar|tst)\b|sushi|burg(u)?er|pizz|esfih/, "Restaurantes"],
   [/\b(uber\w*|99 ?(app|pop|taxi)|posto|autpost\w*|auto posto|shell|ipiranga|petrobras|sunoco|exxon|estacion\w*|parking|zul|zona azul|sem parar|conectcar|veloe|rentcar\w*|localiza\w*|movida|turbi|unidas|sixt|mta|metro|cptm|pedagio|centro autom)\b|uber|posto|sixt|localiza|rentcar/, "Transporte"],
   [/\b(droga\w*|drogasil\w*|raia|farma\w*|pharmacy|pague menos|hospital|laborat\w*|clinica|dr|dra|manipul\w*|odonto\w*|omint)\b|droga|farma/, "Saúde"],

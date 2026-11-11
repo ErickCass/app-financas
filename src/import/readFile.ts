@@ -6,6 +6,7 @@ import { Platform } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { looksLikeItauAccount, looksLikeItauCard, parseItauAccount, parseItauCard } from "./itau";
 import { looksLikeNubankCsv, parseNubankCsv } from "./nubankCsv";
+import { looksLikeFlashCsv, parseFlashCsv } from "./flashCsv";
 import { looksLikeItauCardXlsx, parseItauCardXlsx } from "./itauCardXlsx";
 import { isZip, readXlsx } from "./xlsx";
 import type { PdfPage } from "./pdfText";
@@ -91,7 +92,7 @@ async function readPdfPages(bytes: Uint8Array): Promise<PdfPage[]> {
 }
 
 export const SUPPORTED_HINT =
-  "fatura do cartão Itaú (PDF ou planilha), extrato da conta Itaú (PDF) e fatura do Nubank (CSV).";
+  "fatura do cartão Itaú (PDF ou planilha), extrato da conta Itaú (PDF), fatura do Nubank (CSV) e extrato da Flash (CSV).";
 
 export async function parseStatementFile(file: PickedFile): Promise<ParsedStatement> {
   if (isZip(file.bytes)) {
@@ -111,5 +112,6 @@ export async function parseStatementFile(file: PickedFile): Promise<ParsedStatem
   }
   const text = new TextDecoder("utf-8").decode(file.bytes);
   if (looksLikeNubankCsv(text)) return parseNubankCsv(text, file.name);
+  if (looksLikeFlashCsv(text)) return parseFlashCsv(text, file.name);
   throw new Error(`Não reconheci este arquivo. Por enquanto lemos: ${SUPPORTED_HINT}`);
 }

@@ -3,6 +3,7 @@ import type { Category, Transaction } from "@/domain/types";
 import { rulePattern, suggestCategory } from "./categorize";
 import { parseItauAccount, parseItauCard, looksLikeItauAccount, looksLikeItauCard } from "./itau";
 import { looksLikeItauCardXlsx, parseItauCardXlsx } from "./itauCardXlsx";
+import { looksLikeFlashCsv, parseFlashCsv } from "./flashCsv";
 import type { Sheet } from "./xlsx";
 import { parseNubankCsv, splitCsvLine } from "./nubankCsv";
 import { columnSplit, layoutPdfText, type PdfPage } from "./pdfText";
@@ -368,5 +369,27 @@ describe("prévia da importação", () => {
     // o estorno herda a categoria da compra
     expect(plan.rows[2]!.categoryId).toBe("com");
     expect(plan.mismatches).toEqual([]);
+  });
+});
+
+describe("extrato Flash (benefício)", () => {
+  const csv = [
+    "Data,Hora,Movimentação,Valor,Meio de Pagamento,Saldo",
+    '10/11/2026,21:19,OBA HORTIFRUTI S SAO BERNARDO BRA,"-R$ 941,57",Cartão,"R$ 510,29"',
+    '31/10/2026,17:16,Market4uGestaoDe Fazenda Rio G BR,"-R$ 0,00",Cartão,"R$ 3.397,86"',
+    '28/10/2026,00:06,Depósito transferido,"R$ 1.352,56",Depósito,"R$ 3.421,62"',
+  ].join("\n");
+  const st = parseFlashCsv(csv, "flash_extrato_10-2026_abc.csv");
+
+  it("reconhece, lê o saldo mais recente e ignora R$ 0,00", () => {
+    expect(looksLikeFlashCsv(csv)).toBe(true);
+    expect(st.kind).toBe("benefit");
+    expect(st.closingBalance).toEqual({ amount: 51029, asOf: "2026-11-10T21:19:00-03:00" });
+    expect(st.items).toHaveLength(2);
+  });
+
+  it("compra sai do saldo e carga da empresa é interna (não é renda)", () => {
+    expect(st.items[0]).toMatchObject({ date: "2026-11-10", amount: -94157, description: "OBA HORTIFRUTI S SAO BERNARDO BRA" });
+    expect(st.items[1]).toMatchObject({ amount: 135256, internal: true });
   });
 });
