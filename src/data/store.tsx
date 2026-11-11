@@ -39,6 +39,10 @@ interface FinanceActions {
   markInternal(ids: string[]): Promise<void>;
   /** Desfaz: os lançamentos voltam a ficar sem categoria; `forgetRule` apaga a regra aprendida. */
   clearClassification(ids: string[], forgetRule?: boolean): Promise<void>;
+  /** Renda a receber ou conta a pagar (avulsa ou mensal). */
+  addPlanned(p: remote.PlannedInput): Promise<void>;
+  setPlannedStatus(id: string, status: "pending" | "paid"): Promise<void>;
+  removePlanned(id: string, alsoRecurrence?: boolean): Promise<void>;
   createCategory(name: string, kind: Category["kind"]): Promise<void>;
   updateCategory(id: string, patch: { name?: string; kind?: Category["kind"] }): Promise<void>;
   archiveCategory(id: string): Promise<void>;
@@ -99,6 +103,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     try {
       await remote.seedIfEmpty(userId);
       const today = todayISO();
+      await remote.materializeRecurring(userId, today);
       const loaded = await remote.loadFinanceData(today);
       setData({ today, ...loaded });
       setStatus("ready");
@@ -182,6 +187,32 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             if (first && forgetRule) await remote.forgetRule(first.description);
           },
         );
+      },
+      addPlanned: async (p: remote.PlannedInput) => {
+        if (isDemo) {
+          setData((d) => ({
+            ...d,
+            planned: [...d.planned, { id: `demo-p-${Date.now()}`, accountId: p.accountId, dueDate: p.dueDate, description: p.description, amount: p.amount, categoryId: p.categoryId, status: "pending" as const, estimated: p.estimated || undefined }],
+            recurringMonthly: p.monthly ? [...d.recurringMonthly, { amount: p.amount }] : d.recurringMonthly,
+          }));
+          return;
+        }
+        await remote.createPlanned(p, userId!);
+        await reload();
+      },
+      setPlannedStatus: (id: string, status: "pending" | "paid") =>
+        optimistic(
+          (d) => ({ ...d, planned: d.planned.map((p) => (p.id === id ? { ...p, status } : p)) }),
+          () => remote.setPlannedStatus(id, status),
+        ),
+      removePlanned: async (id: string, alsoRecurrence = false) => {
+        const item = data.planned.find((p) => p.id === id);
+        if (isDemo) {
+          setData((d) => ({ ...d, planned: d.planned.filter((p) => p.id !== id) }));
+          return;
+        }
+        await remote.deletePlanned(id, alsoRecurrence ? item?.recurringRuleId : undefined);
+        await reload();
       },
       createCategory: async (name: string, kind: Category["kind"]) => {
         const used = new Set(data.categories.map((c) => c.color));

@@ -62,6 +62,8 @@ export interface Planned {
   estimated?: boolean;
   /** Fatura de cartão: o previsto é a soma das compras daquele mês de fatura. */
   creditCardStatement?: { accountId: string; month: string };
+  /** Gerado por uma recorrência mensal (salário, condomínio...). */
+  recurringRuleId?: string;
 }
 
 /** Limite mensal de uma categoria variável. */

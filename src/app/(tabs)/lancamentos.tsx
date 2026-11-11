@@ -40,7 +40,7 @@ export default function Lancamentos() {
         subtitle: p.creditCardStatement ? "Ver as compras desta fatura ›" : `${catName(p.categoryId)} · ${accName(p.accountId)}`,
         amount: p.amount,
         status: p.amount > 0 ? "a_receber" : "a_pagar",
-        href: p.creditCardStatement ? `/fatura/${p.id}` : undefined,
+        href: p.creditCardStatement ? `/fatura/${p.id}` : `/previsto?id=${p.id}`,
       }));
     const real: Row[] = f.transactions
       .filter((tx) => monthOf(tx.date) === month && !tx.isCardPayment)
@@ -144,6 +144,24 @@ export default function Lancamentos() {
           </Pressable>
         </Link>
       ) : null}
+
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        {(
+          [
+            ["pagar", "+ Conta a pagar"],
+            ["receber", "+ Renda a receber"],
+          ] as const
+        ).map(([tipo, label]) => (
+          <Link key={tipo} href={`/previsto?tipo=${tipo}`} asChild>
+            <Pressable
+              accessibilityRole="link"
+              style={{ flex: 1, height: 40, borderRadius: 12, borderWidth: 1, borderColor: t.line, backgroundColor: t.card, alignItems: "center", justifyContent: "center" }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: "600", color: t.accent }}>{label}</Text>
+            </Pressable>
+          </Link>
+        ))}
+      </View>
 
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Card style={{ flex: 1, padding: 14, gap: 4 }}>

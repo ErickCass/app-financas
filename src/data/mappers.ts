@@ -51,6 +51,7 @@ export interface PlannedRow {
   status: "pending" | "paid" | "cancelled";
   statement_account_id: string | null;
   statement_month: string | null;
+  recurring_rule_id?: string | null;
 }
 
 /** bigint do Postgres pode chegar como string; dinheiro precisa ser inteiro. */
@@ -130,6 +131,7 @@ export const plannedFromRow = (r: PlannedRow): Planned | null => {
       r.statement_account_id && r.statement_month
         ? { accountId: r.statement_account_id, month: r.statement_month.slice(0, 7) }
         : undefined,
+    recurringRuleId: r.recurring_rule_id ?? undefined,
   };
 };
 
