@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Link, useLocalSearchParams } from "expo-router";
 import { useFinance } from "@/data/store";
@@ -58,6 +58,58 @@ export default function Fluxo() {
   const realizedTotal = out ? s.expensesPaid : s.incomeReceived;
   const cardTotal = data.byCard.reduce((a, [, v]) => a + Math.max(v.total, 0), 0);
 
+  type RowData = { key: string; accountId: string; title: string; sub: string; amount: number; date: string; href?: string };
+  const [sort, setSort] = useState<"data" | "valor">("data");
+  const sortRows = (rows: RowData[]) =>
+    sort === "valor"
+      ? [...rows].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+      : [...rows].sort((a, b) => (b.date || "9999").localeCompare(a.date || "9999") || Math.abs(b.amount) - Math.abs(a.amount));
+
+  const pendingRows: RowData[] = [
+    ...data.planned.map((p) => ({
+      key: p.id,
+      accountId: p.accountId,
+      title: p.description,
+      sub: `${catName(p.categoryId)} · ${p.recurringRuleId ? "todo mês" : "previsto"}${p.estimated ? " · valor aproximado" : ""}`,
+      amount: p.amount,
+      date: p.dueDate,
+      href: `/previsto?id=${p.id}`,
+    })),
+    ...data.byCard.map(([accountId, v]) => ({
+      key: accountId,
+      accountId,
+      title: `Compras no ${accountOf(accountId)?.name ?? "cartão"}`,
+      sub: `${v.count} ${v.count === 1 ? "compra" : "compras"}${v.bill ? ` · fatura vence ${shortDate(v.bill.dueDate)} ›` : " · ver ›"}`,
+      amount: -v.total,
+      date: "",
+      href: v.bill ? `/fatura/${v.bill.id}` : "/lancamentos",
+    })),
+    ...(out
+      ? s.fixedRemaining.map((r) => {
+          const cat = f.categories.find((c) => c.id === r.categoryId);
+          const expected = f.budgets.find((b) => b.categoryId === r.categoryId && b.month === month)?.limit ?? 0;
+          return {
+            key: `fixed-${r.categoryId}`,
+            accountId: "",
+            title: cat?.name ?? "Conta fixa",
+            sub: r.amount === expected ? `conta fixa · previsto ${formatBRL(expected)} · ainda não paga ›` : `conta fixa · falta pagar de ${formatBRL(expected)} previstos ›`,
+            amount: -r.amount,
+            date: "",
+            href: `/categoria/${r.categoryId}`,
+          };
+        })
+      : []),
+  ];
+  const realizedRows: RowData[] = data.realized.map((x: Transaction) => ({
+    key: x.id,
+    accountId: x.accountId,
+    title: x.description,
+    sub: catName(x.categoryId),
+    amount: x.amount,
+    date: x.date,
+    href: x.categoryId ? undefined : "/classificar",
+  }));
+
   const row = (key: string, accountId: string, title: string, sub: string, amount: number, date: string, href?: string) => {
     const content = (
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: t.line }}>
@@ -87,6 +139,25 @@ export default function Fluxo() {
         <Text style={{ fontSize: 28, fontWeight: "700", color: t.ink, letterSpacing: -0.3 }}>{out ? "Despesas do mês" : "Renda do mês"}</Text>
       </View>
 
+      <View style={{ flexDirection: "row", padding: 2, borderRadius: 10, backgroundColor: t.track, gap: 2 }}>
+        {(
+          [
+            ["data", "Por data"],
+            ["valor", "Maior valor"],
+          ] as const
+        ).map(([k, label]) => (
+          <Pressable
+            key={k}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: sort === k }}
+            onPress={() => setSort(k)}
+            style={{ flex: 1, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: sort === k ? t.card : "transparent" }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: sort === k ? "600" : "500", color: t.ink }}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+
       <SectionTitle right={<Text style={{ fontSize: 15, fontWeight: "600", color: t.ink }}>{formatBRL(pendingTotal)}</Text>}>
         {out ? "A pagar" : "A receber"}
       </SectionTitle>
@@ -94,36 +165,7 @@ export default function Fluxo() {
         {data.planned.length === 0 && data.byCard.length === 0 && s.fixedRemaining.length === 0 ? (
           <Text style={{ fontSize: 14, color: t.ink2, paddingVertical: 12 }}>{out ? "Nada previsto para pagar neste mês." : "Nada previsto para receber neste mês."}</Text>
         ) : null}
-        {data.planned.map((p) =>
-          row(p.id, p.accountId, p.description, `${catName(p.categoryId)} · ${p.recurringRuleId ? "todo mês" : "previsto"}${p.estimated ? " · valor aproximado" : ""}`, p.amount, p.dueDate, `/previsto?id=${p.id}`),
-        )}
-        {data.byCard.map(([accountId, v]) => {
-          const acc = accountOf(accountId);
-          return row(
-            accountId,
-            accountId,
-            `Compras no ${acc?.name ?? "cartão"}`,
-            `${v.count} ${v.count === 1 ? "compra" : "compras"}${v.bill ? ` · fatura vence ${shortDate(v.bill.dueDate)} ›` : " · ver ›"}`,
-            -v.total,
-            "",
-            v.bill ? `/fatura/${v.bill.id}` : `/lancamentos`,
-          );
-        })}
-        {out
-          ? s.fixedRemaining.map((r) => {
-              const cat = f.categories.find((c) => c.id === r.categoryId);
-              const expected = f.budgets.find((b) => b.categoryId === r.categoryId && b.month === month)?.limit ?? 0;
-              return row(
-                `fixed-${r.categoryId}`,
-                "",
-                cat?.name ?? "Conta fixa",
-                r.amount === expected ? `conta fixa · previsto ${formatBRL(expected)} · ainda não paga ›` : `conta fixa · falta pagar de ${formatBRL(expected)} previstos ›`,
-                -r.amount,
-                "",
-                `/categoria/${r.categoryId}`,
-              );
-            })
-          : null}
+        {sortRows(pendingRows).map((r) => row(r.key, r.accountId, r.title, r.sub, r.amount, r.date, r.href))}
         {out && cardTotal > 0 ? (
           <Text style={{ fontSize: 12, color: t.ink2, lineHeight: 17, paddingVertical: 10 }}>
             Compra no cartão conta como a pagar no mês da compra, mesmo que a fatura vença no mês seguinte.
@@ -139,9 +181,7 @@ export default function Fluxo() {
         {data.realized.length === 0 ? (
           <Text style={{ fontSize: 14, color: t.ink2, paddingVertical: 12 }}>{out ? "Nenhuma saída da conta neste mês." : "Nenhuma entrada na conta neste mês."}</Text>
         ) : null}
-        {data.realized.map((x: Transaction) =>
-          row(x.id, x.accountId, x.description, catName(x.categoryId), x.amount, x.date, x.categoryId ? undefined : "/classificar"),
-        )}
+        {sortRows(realizedRows).map((r) => row(r.key, r.accountId, r.title, r.sub, r.amount, r.date, r.href))}
       </Card>
     </Screen>
   );
