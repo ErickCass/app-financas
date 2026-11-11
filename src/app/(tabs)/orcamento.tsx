@@ -124,6 +124,19 @@ export default function Orcamento() {
         </Card>
       ) : null}
 
+      <Link href="/plano" asChild>
+        <Pressable
+          accessibilityRole="link"
+          style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, backgroundColor: t.accentSoft }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", color: t.accent }}>Plano do mês</Text>
+            <Text style={{ fontSize: 13, color: t.ink2 }}>Renda, contas fixas e limites: quanto sobra se tudo sair como planejado</Text>
+          </View>
+          <Text style={{ fontSize: 15, fontWeight: "600", color: t.accent }}>Abrir ›</Text>
+        </Pressable>
+      </Link>
+
       <SectionTitle
         right={
           <Link href="/limites" style={{ fontSize: 15, fontWeight: "600", color: t.accent }}>

@@ -3,13 +3,23 @@ import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/data/auth";
 import { FinanceProvider } from "@/data/store";
 import { useTheme } from "@/ui/theme";
+import { AppearanceProvider, useAppearance } from "@/ui/appearance";
 
 export default function RootLayout() {
+  return (
+    <AppearanceProvider>
+      <Shell />
+    </AppearanceProvider>
+  );
+}
+
+function Shell() {
   const t = useTheme();
+  const { scheme } = useAppearance();
   return (
     <AuthProvider>
       <FinanceProvider>
-        <StatusBar style="auto" />
+        <StatusBar style={scheme === "dark" ? "light" : "dark"} />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="entrar" />
@@ -20,6 +30,7 @@ export default function RootLayout() {
           <Stack.Screen name="importar" options={{ presentation: "modal" }} />
           <Stack.Screen name="classificar" />
           <Stack.Screen name="fluxo" />
+          <Stack.Screen name="plano" options={{ presentation: "modal" }} />
           <Stack.Screen name="previsto" options={{ presentation: "modal" }} />
           <Stack.Screen name="ajustes" />
         </Stack>

@@ -10,6 +10,7 @@ import { NavBar } from "@/ui/NavBar";
 import { useTheme } from "@/ui/theme";
 import { AccountMark, ACCOUNT_COLORS, accountColor } from "@/ui/AccountMark";
 import { pickCardImage } from "@/ui/cardImage";
+import { useAppearance } from "@/ui/appearance";
 
 export default function Ajustes() {
   const t = useTheme();
@@ -17,6 +18,7 @@ export default function Ajustes() {
   const f = useFinance();
   const checking = f.accounts.filter((a) => a.kind === "checking" || a.kind === "cash");
   const [colorError, setColorError] = useState<string | null>(null);
+  const appearance = useAppearance();
   const [editing, setEditing] = useState<string | null>(null);
   const [value, setValue] = useState(0);
   const [negative, setNegative] = useState(false);
@@ -96,7 +98,31 @@ export default function Ajustes() {
         </>
       ) : null}
 
-          <SectionTitle>Cores das contas e cartões</SectionTitle>
+          <SectionTitle>Aparência</SectionTitle>
+      <Card>
+        <View style={{ flexDirection: "row", padding: 2, borderRadius: 10, backgroundColor: t.track, gap: 2 }}>
+          {(
+            [
+              ["auto", "Automático"],
+              ["light", "Claro"],
+              ["dark", "Escuro"],
+            ] as const
+          ).map(([m, label]) => (
+            <Pressable
+              key={m}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: appearance.mode === m }}
+              onPress={() => appearance.setMode(m)}
+              style={{ flex: 1, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: appearance.mode === m ? t.card : "transparent" }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: appearance.mode === m ? "600" : "500", color: t.ink }}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={{ fontSize: 13, color: t.ink2 }}>Automático segue o ajuste do aparelho.</Text>
+      </Card>
+
+      <SectionTitle>Cores das contas e cartões</SectionTitle>
       <Card style={{ gap: 0, paddingVertical: 4 }}>
         {f.accounts.map((a, i) => (
           <View key={a.id} style={{ gap: 8, paddingVertical: 10, borderBottomWidth: i < f.accounts.length - 1 ? 1 : 0, borderBottomColor: t.line }}>

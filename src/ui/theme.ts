@@ -1,4 +1,4 @@
-import { useColorScheme } from "react-native";
+import { useAppearance } from "./appearance";
 import type { PaceStatus } from "@/domain/budget";
 
 const light = {
@@ -40,7 +40,7 @@ const dark: typeof light = {
 export type Theme = typeof light;
 
 export function useTheme(): Theme {
-  return useColorScheme() === "dark" ? dark : light;
+  return useAppearance().scheme === "dark" ? dark : light;
 }
 
 /** As quatro cores do orçamento, iguais nos dois temas. */

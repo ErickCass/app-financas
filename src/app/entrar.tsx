@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, useColorScheme, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { useAppearance } from "@/ui/appearance";
 import { Redirect } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { translateAuthError, useAuth } from "@/data/auth";
@@ -206,7 +207,7 @@ function MainButton({ label, onPress, disabled, busy }: { label: string; onPress
 /** Botões no padrão das marcas: Apple preto (branco no modo escuro), Google branco com o "G" colorido. */
 function SocialButton({ provider, onPress, disabled }: { provider: Provider; onPress: () => void; disabled?: boolean }) {
   const t = useTheme();
-  const dark = useColorScheme() === "dark";
+  const dark = useAppearance().scheme === "dark";
   const apple = provider === "apple";
   const bg = apple ? (dark ? "#FFFFFF" : "#000000") : "#FFFFFF";
   const fg = apple ? (dark ? "#000000" : "#FFFFFF") : "#1F1F1F";
