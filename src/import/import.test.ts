@@ -393,3 +393,45 @@ describe("extrato Flash (benefício)", () => {
     expect(st.items[1]).toMatchObject({ amount: 135256, internal: true });
   });
 });
+
+describe("categorias com nomes próprios", () => {
+  // Como ficam as categorias de quem renomeou tudo.
+  const MINHAS: Category[] = [
+    { id: "cu", name: "Combustível / Uber", kind: "variable", color: "#000" },
+    { id: "rl", name: "Restaurantes / Lazer", kind: "variable", color: "#000" },
+    { id: "me", name: "Mercado", kind: "variable", color: "#000" },
+    { id: "vi", name: "Viagens", kind: "variable", color: "#000" },
+    { id: "sa", name: "Saúde", kind: "variable", color: "#000" },
+    { id: "pet", name: "PET", kind: "fixed", color: "#000" },
+    { id: "cl", name: "Claude", kind: "fixed", color: "#000" },
+    { id: "ci", name: "Celular + Internet", kind: "fixed", color: "#000" },
+    { id: "es", name: "Escola Sarah", kind: "fixed", color: "#000" },
+    { id: "co", name: "Condomínio FG", kind: "fixed", color: "#000" },
+    { id: "re", name: "Renda", kind: "income", color: "#000" },
+  ];
+  const cat = (description: string, amount = -1000, bankCategory?: string) =>
+    suggestCategory({ description, amount, bankCategory }, MINHAS, [])?.categoryId ?? null;
+
+  it("encaixa pelo nome parcial e pelo mais específico", () => {
+    expect(cat("UBER *TRIP HELP.UBER.CO")).toBe("cu");
+    expect(cat("AUTPOSTOFLORESTAL")).toBe("cu");
+    expect(cat("Ifd*Central Restaurant")).toBe("rl");
+    expect(cat("Hotel At Booking.Com")).toBe("vi");
+    expect(cat("PET LOVE*Clube 0A")).toBe("pet");
+    expect(cat("ANTHROPIC CLAUDE")).toBe("cl");
+    expect(cat("DA VIVO-SP 123456")).toBe("ci");
+    expect(cat("PAG BOLETO ESCOLA SARAH")).toBe("es");
+    expect(cat("CONDOMINIO EDIF")).toBe("co");
+    expect(cat("REMUNERACAO/SALARIO", 300000)).toBe("re");
+  });
+
+  it("categoria do banco também aceita o nome próprio", () => {
+    expect(cat("LOJA QUALQUER", -1000, "VEÍCULOS")).toBe("cu");
+    expect(cat("PADOCA", -1000, "ALIMENTAÇÃO")).toBe("rl");
+  });
+
+  it("sem categoria correspondente, deixa em branco", () => {
+    expect(cat("Joaosilvaexemplo")).toBeNull();
+    expect(cat("IPTU PREFEITURA")).toBeNull(); // quem não tem IPTU nem Moradia
+  });
+});
