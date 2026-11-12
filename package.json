@@ -33,7 +33,8 @@
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
     "typescript": "~6.0.3",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "wrangler": "^4.160.1"
   },
   "scripts": {
     "start": "expo start",
@@ -45,7 +46,9 @@
     "build:web": "node scripts/copy-pdfjs.mjs && expo export --platform web",
     "build:web-preview": "node scripts/copy-pdfjs.mjs && expo export --platform web && node scripts/web-preview.mjs",
     "lint": "expo lint",
-    "postinstall": "node scripts/copy-pdfjs.mjs"
+    "postinstall": "node scripts/copy-pdfjs.mjs",
+    "deploy": "npx expo export -p web && wrangler deploy",
+    "preview": "npx expo export -p web && wrangler dev"
   },
   "private": true
 }

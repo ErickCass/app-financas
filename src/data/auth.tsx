@@ -80,7 +80,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setMode(supabaseConfigured ? "signed_out" : "demo");
           return;
         }
-        await supabase.auth.signOut();
+        // Encerra a sessão local na hora; o servidor é avisado em seguida (sem travar se a rede falhar).
+        setSession(null);
+        setMode("signed_out");
+        try {
+          await supabase.auth.signOut({ scope: "local" });
+          void supabase.auth.signOut().catch(() => {});
+        } catch {
+          /* sessão local já foi limpa */
+        }
       },
       enterDemo() {
         setMode("demo");

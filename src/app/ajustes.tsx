@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useAuth } from "@/data/auth";
 import { useFinance } from "@/data/store";
 import { formatBRL } from "@/domain/money";
@@ -179,7 +179,11 @@ export default function Ajustes() {
             <Text style={{ fontSize: 16, color: t.ink }}>Importar fatura ou extrato</Text>
           </Pressable>
         </Link>
-        <Pressable accessibilityRole="button" onPress={() => void auth.signOut()} style={{ height: 48, justifyContent: "center" }}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void auth.signOut().finally(() => router.replace("/entrar"))}
+          style={{ height: 48, justifyContent: "center" }}
+        >
           <Text style={{ fontSize: 16, color: t.neg }}>{f.isDemo ? "Sair da demonstração" : "Sair"}</Text>
         </Pressable>
       </Card>

@@ -49,3 +49,8 @@ dist/
 public/pdfjs/
 .raw-local.mts
 .dbg.mts
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
