@@ -4,7 +4,7 @@ import { Link } from "expo-router";
 import { useFinance } from "@/data/store";
 import { formatBRL } from "@/domain/money";
 import { normalizeDescription } from "@/domain/dedup";
-import { monthOf, shortDate } from "@/domain/dates";
+import { addMonths, monthLabel, monthOf, shortDate } from "@/domain/dates";
 import { Card, Screen } from "@/ui/components";
 import { AccountMark } from "@/ui/AccountMark";
 import { useTheme } from "@/ui/theme";
@@ -28,7 +28,10 @@ export default function Lancamentos() {
   const f = useFinance();
   const [filter, setFilter] = useState<Filter>("todos");
   const [query, setQuery] = useState("");
-  const month = monthOf(f.today);
+  // Mês mostrado: compras de fatura entram na data da compra, então é comum
+  // precisar voltar um ou dois meses para ver o que veio de uma fatura.
+  const [month, setMonth] = useState(monthOf(f.today));
+  const isCurrent = month === monthOf(f.today);
   const accountById = new Map(f.accounts.map((a) => [a.id, a]));
 
   const rows = useMemo(() => {
@@ -112,7 +115,7 @@ export default function Lancamentos() {
         {(
           [
             ["todos", "Todos"],
-            ["previstos", "A pagar e receber"],
+            ["previstos", "Previstos"],
             ["realizados", "Realizados"],
           ] as const
         ).map(([k, label]) => (
@@ -126,6 +129,19 @@ export default function Lancamentos() {
             <Text style={{ fontSize: 14, fontWeight: filter === k ? "600" : "500", color: t.ink }}>{label}</Text>
           </Pressable>
         ))}
+      </View>
+
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <MonthButton label="‹" hint="Mês anterior" onPress={() => setMonth(addMonths(month, -1))} />
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: t.ink }}>{monthLabel(month)}</Text>
+          {!isCurrent ? (
+            <Pressable accessibilityRole="button" onPress={() => setMonth(monthOf(f.today))} style={{ paddingVertical: 2 }}>
+              <Text style={{ fontSize: 13, color: t.accent, fontWeight: "600" }}>Voltar para o mês atual</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <MonthButton label="›" hint="Próximo mês" onPress={() => setMonth(addMonths(month, 1))} />
       </View>
 
       {uncategorized > 0 ? (
@@ -230,5 +246,19 @@ export default function Lancamentos() {
       })}
       {groups.length === 0 ? <Text style={{ color: t.ink2, textAlign: "center", padding: 24 }}>Nenhum lançamento encontrado.</Text> : null}
     </Screen>
+  );
+}
+
+function MonthButton({ label, hint, onPress }: { label: string; hint: string; onPress: () => void }) {
+  const t = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={hint}
+      onPress={onPress}
+      style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.card, alignItems: "center", justifyContent: "center" }}
+    >
+      <Text style={{ fontSize: 20, color: t.accent, lineHeight: 22 }}>{label}</Text>
+    </Pressable>
   );
 }
