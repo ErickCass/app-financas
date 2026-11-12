@@ -435,3 +435,86 @@ describe("categorias com nomes próprios", () => {
     expect(cat("IPTU PREFEITURA")).toBeNull(); // quem não tem IPTU nem Moradia
   });
 });
+
+const ITAU_APP = {
+  lines: [
+    "FULANO DE TAL SILVA   CPF: 123.456.789-00   agência: 1234   conta: 0012345-6",
+    "Saldo em conta",
+    "R$ -1.920,00",
+    "Extrato conta corrente",
+    "Período de visualização: 01/11/2026 até 12/11/2026   Emitido em: 12/11/2026 18:34:23",
+    "Lançamentos futuros",
+    "Saídas futuras",
+    "Data   Lançamentos   Descrição   Valor (R$)   Saldo (R$)",
+    "16/11/2026   DÉBITO AUTOMÁTICO   DA ELETROPAULO   -446,20",
+    "76808015",
+    "Lançamentos",
+    "Data   Lançamentos   Descrição   Valor (R$)   Saldo (R$)",
+    "12/11/2026   PAGAMENTO DE PIX QR   43.302.625 MARIA DE   -110,00",
+    "CODE   SOUZA",
+    "10/11/2026   PAGAMENTO DE BOLETO   ITAU UNIBANCO HOLDING   -1.000,00",
+    "S.A.",
+    "09/11/2026   390,00",
+    "09/11/2026   PIX ENVIADO   JOAO DA SILVA   -210,00",
+    "31/10/2026   600,00",
+    "Posição consolidada",
+    "31/10/2026   ESTE TEXTO NÃO É LANÇAMENTO   999,00",
+  ],
+  columns: [],
+};
+
+describe("extrato Itaú exportado pelo app", () => {
+  const st = parseItauAccount(ITAU_APP);
+
+  it("reconhece o layout de 5 colunas e usa o saldo do cabeçalho", () => {
+    expect(looksLikeItauAccount(ITAU_APP)).toBe(true);
+    expect(st.closingBalance).toEqual({ amount: -192000, asOf: "2026-11-12T18:34:23-03:00" });
+    expect(st.suggestedAccountName).toBe("Conta Itaú •••• 2345");
+  });
+
+  it("junta as linhas quebradas, separa os futuros e para na posição consolidada", () => {
+    expect(st.items.map((i) => i.description)).toEqual([
+      "PAGAMENTO DE PIX QR 43.302.625 MARIA DE CODE SOUZA",
+      "PAGAMENTO DE BOLETO ITAU UNIBANCO HOLDING S.A.",
+      "PIX ENVIADO JOAO DA SILVA",
+    ]);
+    expect(st.upcoming[0]!.description).toBe("DÉBITO AUTOMÁTICO DA ELETROPAULO 76808015");
+  });
+
+  it("pagamento de boleto da fatura é transferência interna", () => {
+    expect(st.items[1]!.internal).toBe(true);
+  });
+
+  it("deduz o sinal do saldo inicial pela aritmética e confere", () => {
+    // saldo de 31/10 vem sem sinal (600,00); só -600,00 fecha com -1.920,00
+    expect(st.checks[0]!.computed).toBe(st.checks[0]!.declared);
+    expect(st.checks[0]!.computed).toBe(-132000);
+  });
+});
+
+describe("não reimporta o mesmo período em outro formato", () => {
+  const st = parseNubankCsv(
+    ["date,title,amount", '2026-11-07,Loja A,"100,00"', '2026-11-07,Loja A,"100,00"'].join("\n"),
+    "Nubank_2026-12-01.csv",
+  );
+  it("cada lançamento existente cobre só um do arquivo", () => {
+    const existing: Transaction = {
+      id: "x1",
+      accountId: "card",
+      date: "2026-11-07",
+      description: "LOJA A LTDA", // descrição diferente, mesmo lançamento
+      amount: -10000,
+      categoryId: null,
+      source: "import",
+    };
+    const plan = buildImportPlan({
+      statement: st,
+      accountId: "card",
+      categories: CATEGORIES,
+      rules: [],
+      importedKeys: new Set(),
+      existing: [existing],
+    });
+    expect(plan.rows.map((r) => r.duplicate)).toEqual(["manual", null]);
+  });
+});

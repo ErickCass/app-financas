@@ -18,9 +18,16 @@ export function looksLikeItauCard(text: PdfText): boolean {
 
 const SALDO_LINE = /^SALDO (DO DIA|TOTAL DISPON\S* DIA|ANTERIOR)/i;
 
+/** Cabeçalho de 5 colunas do PDF gerado pelo app do Itaú. */
+const APP_HEADER = /^Data\s{2,}Lan[çc]amentos\s{2,}Descri[çc][ãa]o\s{2,}Valor/i;
+
 export function looksLikeItauAccount(text: PdfText): boolean {
   const all = text.lines.join("\n");
-  return /extrato conta/i.test(all) && text.lines.some((l) => SALDO_LINE.test(l.replace(/^\d{2}\/\d{2}\/\d{4}\s+/, "").trim()));
+  if (!/extrato conta/i.test(all)) return false;
+  return (
+    text.lines.some((l) => SALDO_LINE.test(l.replace(/^\d{2}\/\d{2}\/\d{4}\s+/, "").trim())) ||
+    text.lines.some((l) => APP_HEADER.test(l.trim()))
+  );
 }
 
 function find(lines: string[], re: RegExp): RegExpMatchArray | null {
@@ -194,6 +201,124 @@ export function parseItauCard(text: PdfText): ParsedStatement {
 // ---------------------------------------------------------------- extrato da conta corrente
 
 export function parseItauAccount(text: PdfText): ParsedStatement {
+  if (text.lines.some((l) => APP_HEADER.test(l.trim()))) return parseItauAccountApp(text);
+  return parseItauAccountWeb(text);
+}
+
+/** Linhas que nunca são continuação da descrição anterior. */
+const NOT_CONTINUATION =
+  /^(Data\b|Lan[çc]amentos\b|Sa[íi]das futuras|Entradas futuras|Posi[çc][ãa]o consolidada|Per[íi]odo de|Emitido em|Extrato conta|Saldo em conta|R\$|Limite da Conta|\* ?Total|Pr[óo]ximos|P[áa]gina)/i;
+
+/**
+ * Extrato em PDF gerado pelo app do Itaú ("compartilhar"): colunas
+ * Data | Lançamentos (tipo) | Descrição | Valor | Saldo, com textos que quebram
+ * em mais de uma linha e a coluna Saldo sem o sinal de negativo.
+ */
+function parseItauAccountApp(text: PdfText): ParsedStatement {
+  const holder = find(text.lines, /^\s*(.+?)\s+CPF:/i) ?? find(text.lines, /^\s*(.+?)\s+\d{3}\.\d{3}\.\d{3}-\d{2}/);
+  const account = find(text.lines, /conta:\s*(\d+)-(\d)/i);
+  const issued = find(text.lines, /Emitido em:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2}(?::\d{2})?)/i);
+  const headerBalance = (() => {
+    const i = text.lines.findIndex((l) => /^saldo em conta\b/i.test(l.trim()));
+    const m = i >= 0 ? text.lines[i + 1]?.match(new RegExp(String.raw`^\s*R\$\s*${VALUE}`)) : null;
+    return m ? money(m[1], m[2]!) : null;
+  })();
+  if (headerBalance === null) throw new Error("Não encontrei o saldo da conta neste extrato do Itaú.");
+
+  const short = (holder?.[1] ?? "").trim().slice(0, 7).trim().toUpperCase();
+  const ownName = short.length >= 5 ? short : null;
+
+  const items: ParsedItem[] = [];
+  const upcoming: ParsedItem[] = [];
+  // A coluna Saldo vem sem sinal; o sinal é deduzido depois pela aritmética.
+  const balances: { date: string; amount: Cents }[] = [];
+  let future = false;
+  let last: { list: ParsedItem[]; item: ParsedItem } | null = null;
+
+  const isValue = (s: string) => new RegExp(String.raw`^${VALUE}$`).test(s.trim());
+
+  for (const raw of text.lines) {
+    const line = raw.trim();
+    if (/^(sa[íi]das|entradas) futuras/i.test(line)) {
+      future = true;
+      last = null;
+      continue;
+    }
+    if (/^lan[çc]amentos$/i.test(line)) {
+      future = false;
+      last = null;
+      continue;
+    }
+    if (/^posi[çc][ãa]o consolidada/i.test(line)) break;
+
+    const fields = line.split(/\s{3,}/).map((f) => f.trim()).filter((f) => f !== "");
+    const first = fields[0] ?? "";
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(first)) {
+      const date = brDate(first);
+      // "12/11/2026   9.481,99": saldo do dia, sozinho na linha.
+      if (fields.length === 2 && isValue(fields[1]!)) {
+        const m = fields[1]!.match(new RegExp(String.raw`^${VALUE}$`))!;
+        balances.push({ date, amount: money(m[1], m[2]!) });
+        last = null;
+        continue;
+      }
+      // "data | tipo | descrição | valor [| saldo]"
+      const valueIndex = fields.findIndex((f, i) => i > 0 && isValue(f));
+      if (valueIndex < 1) {
+        last = null;
+        continue;
+      }
+      const m = fields[valueIndex]!.match(new RegExp(String.raw`^${VALUE}$`))!;
+      const description = tidy(fields.slice(1, valueIndex).join(" "));
+      if (!description) {
+        last = null;
+        continue;
+      }
+      const internal =
+        isCardPayment(description) ||
+        (ownName !== null && /\b(PIX|TED|DOC|TRANSF)\b/i.test(description) && description.toUpperCase().includes(ownName));
+      const item: ParsedItem = { date, description, amount: money(m[1], m[2]!), internal: internal || undefined };
+      const list = future ? upcoming : items;
+      list.push(item);
+      last = { list, item };
+      continue;
+    }
+    // Continuação da descrição anterior ("SCHOOL", "CODE   SHARSHARA").
+    if (last && !NOT_CONTINUATION.test(line) && fields.length <= 2 && line.length <= 60) {
+      last.item.description = tidy(`${last.item.description} ${fields.join(" ")}`);
+      continue;
+    }
+    last = null;
+  }
+
+  if (items.length === 0) throw new Error("Não encontrei lançamentos neste extrato do Itaú.");
+
+  const asOf = issued
+    ? `${brDate(issued[1]!)}T${issued[2]!.length === 5 ? `${issued[2]}:00` : issued[2]}-03:00`
+    : `${items[0]!.date}T23:59:00-03:00`;
+
+  // Saldo inicial: a coluna Saldo não traz o sinal, então vale o sinal que fecha a conta.
+  const checks: TotalCheck[] = [];
+  const opening = [...balances].sort((a, b) => a.date.localeCompare(b.date))[0];
+  if (opening) {
+    const movement = items.filter((i) => i.date > opening.date).reduce((s, i) => s + i.amount, 0);
+    const candidates = [Math.abs(opening.amount), -Math.abs(opening.amount)];
+    const chosen = candidates.find((c) => c + movement === headerBalance) ?? candidates[1]!;
+    checks.push({ label: "Saldo final do extrato", declared: headerBalance - chosen, computed: movement });
+  }
+
+  return {
+    institution: "itau",
+    kind: "checking",
+    suggestedAccountName: account ? `Conta Itaú •••• ${account[1]!.slice(-4)}` : "Conta Itaú",
+    closingBalance: { amount: headerBalance, asOf },
+    items,
+    upcoming,
+    checks,
+  };
+}
+
+function parseItauAccountWeb(text: PdfText): ParsedStatement {
   const holder = find(text.lines, /^\s*(.+?)\s+\d{3}\.\d{3}\.\d{3}-\d{2}/);
   const account = find(text.lines, /conta:\s*(\d+)-(\d)/);
   const issued = find(text.lines, /emitido em:\s*(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2}(?::\d{2})?)/);

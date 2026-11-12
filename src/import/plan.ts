@@ -2,7 +2,7 @@
  * Prévia da importação: categoriza, marca o que já existe e confere os totais.
  * Função pura; a tela mostra o resultado e só então grava.
  */
-import { areLikelyDuplicates, normalizeDescription } from "@/domain/dedup";
+import { normalizeDescription } from "@/domain/dedup";
 import type { Cents } from "@/domain/money";
 import type { Category, Planned, Transaction } from "@/domain/types";
 import { suggestCategory, type CategorySource, type LearnedRule } from "./categorize";
@@ -57,21 +57,29 @@ export function buildImportPlan(args: {
 }): ImportPlan {
   const { statement, accountId, categories, rules, importedKeys, existing, existingPlanned = [] } = args;
   const keys = importKeys(statement);
-  const manual = existing.filter((t) => t.accountId === accountId && t.source !== "import");
+  const sameAccount = existing.filter((t) => t.accountId === accountId);
+
+  // Já existe no app? Cada lançamento existente só cobre um do arquivo, para
+  // não descartar compras repetidas de verdade (duas iguais no mesmo dia).
+  const taken = new Set<string>();
+  // Data e valor iguais bastam: o mesmo extrato exportado noutro formato traz a
+  // descrição diferente, e a chave de importação não reconheceria.
+  const alreadyThere = (item: ParsedItem): boolean => {
+    const match = sameAccount.find((t) => !taken.has(t.id) && t.date === item.date && t.amount === item.amount);
+    if (!match) return false;
+    taken.add(match.id);
+    return true;
+  };
 
   const rows: ImportRow[] = statement.items.map((item, idx) => {
     const key = keys[idx]!;
     const suggestion = item.internal ? null : suggestCategory(item, categories, rules);
-    const isManualDup = manual.some((t) =>
-      areLikelyDuplicates({ date: t.date, description: t.description, amount: t.amount }, { date: item.date, description: item.description, amount: item.amount }) ||
-      (t.date === item.date && t.amount === item.amount),
-    );
     return {
       key,
       item,
       categoryId: suggestion?.categoryId ?? null,
       categorySource: suggestion?.source ?? null,
-      duplicate: importedKeys.has(key) ? "imported" : isManualDup ? "manual" : null,
+      duplicate: importedKeys.has(key) ? "imported" : alreadyThere(item) ? "manual" : null,
     };
   });
 
