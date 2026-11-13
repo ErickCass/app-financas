@@ -55,3 +55,7 @@ public/pdfjs/
 .dev.vars*
 !.dev.vars.example
 .cov-local.mts
+
+# gerados a cada build (ver scripts/stamp-version.mjs)
+public/version.json
+src/buildId.ts

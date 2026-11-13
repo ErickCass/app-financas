@@ -43,10 +43,10 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build:web": "node scripts/copy-pdfjs.mjs && expo export --platform web",
-    "build:web-preview": "node scripts/copy-pdfjs.mjs && expo export --platform web && node scripts/web-preview.mjs",
+    "build:web": "node scripts/copy-pdfjs.mjs && node scripts/stamp-version.mjs && expo export --platform web",
+    "build:web-preview": "node scripts/copy-pdfjs.mjs && node scripts/stamp-version.mjs && expo export --platform web && node scripts/web-preview.mjs",
     "lint": "expo lint",
-    "postinstall": "node scripts/copy-pdfjs.mjs",
+    "postinstall": "node scripts/copy-pdfjs.mjs && node scripts/stamp-version.mjs",
     "deploy": "npx expo export -p web && wrangler deploy",
     "preview": "npx expo export -p web && wrangler dev"
   },

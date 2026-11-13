@@ -50,7 +50,7 @@ export default function Entrar() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Screen>
+      <Screen refreshable={false}>
         <View style={{ gap: 8, paddingTop: 40, paddingBottom: 12 }}>
           <View style={{ width: 56, height: 56, borderRadius: 14, backgroundColor: t.accent, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ color: t.onAccent, fontSize: 28, fontWeight: "700" }}>F</Text>

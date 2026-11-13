@@ -2,16 +2,36 @@ import type { ReactNode } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "./theme";
+import { useFinance } from "@/data/store";
+import { PullIndicator, usePullToRefresh } from "./pullToRefresh";
 
-/** Tela rolável com largura máxima no computador (versão web). */
-export function Screen({ children, title, right }: { children: ReactNode; title?: string; right?: ReactNode }) {
+/**
+ * Tela rolável com largura máxima no computador (versão web).
+ * Puxar para baixo no topo recarrega os dados (ver usePullToRefresh).
+ * `refreshable={false}` para telas que não dependem dos dados, como a de entrar.
+ */
+export function Screen({
+  children,
+  title,
+  right,
+  refreshable = true,
+}: {
+  children: ReactNode;
+  title?: string;
+  right?: ReactNode;
+  refreshable?: boolean;
+}) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const { reload } = useFinance();
+  const { refreshing, pull, scrollProps } = usePullToRefresh(reload, refreshable);
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: t.bg }}
       contentContainerStyle={[styles.screen, { paddingTop: insets.top + 16 }]}
+      {...scrollProps}
     >
+      <PullIndicator refreshing={refreshing} pull={pull} />
       <View style={styles.column}>
         {title ? (
           <View style={styles.header}>
