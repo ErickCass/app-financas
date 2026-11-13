@@ -21,6 +21,7 @@ import {
   type CategoryRow,
   type PlannedRow,
   type TransactionRow,
+  transactionPatchToRow,
 } from "./mappers";
 import type { FinanceData } from "./store";
 import { supabase } from "./supabase";
@@ -482,6 +483,11 @@ export async function deleteTransaction(id: string, plannedId?: string) {
   if (plannedId) check(await supabase.from("planned").update({ status: "pending" }).eq("id", plannedId), "reabrir o previsto");
 }
 
-export async function updateTransaction(id: string, patch: { description?: string; amount?: number; date?: string; category_id?: string | null }) {
-  check(await supabase.from("transactions").update(patch).eq("id", id), "salvar o lançamento");
+export async function updateTransaction(
+  id: string,
+  patch: { description?: string; amount?: number; date?: string; categoryId?: string | null },
+) {
+  const row = transactionPatchToRow(patch);
+  if (Object.keys(row).length === 0) return;
+  check(await supabase.from("transactions").update(row).eq("id", id), "salvar o lançamento");
 }

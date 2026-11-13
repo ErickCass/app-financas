@@ -142,6 +142,21 @@ export const plannedFromRow = (r: PlannedRow): Planned | null => {
 };
 
 /** Categorias criadas no primeiro acesso. O usuário renomeia, apaga ou cria outras depois. */
+/** Campos de um lançamento (nomes do app) para as colunas da tabela. */
+export function transactionPatchToRow(patch: {
+  description?: string;
+  amount?: number;
+  date?: string;
+  categoryId?: string | null;
+}): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  if (patch.description !== undefined) row.description = patch.description;
+  if (patch.amount !== undefined) row.amount_cents = patch.amount;
+  if (patch.date !== undefined) row.date = patch.date;
+  if (patch.categoryId !== undefined) row.category_id = patch.categoryId;
+  return row;
+}
+
 export const DEFAULT_CATEGORIES: { name: string; kind: Category["kind"]; color: string }[] = [
   { name: "Mercado", kind: "variable", color: "#0E4A5C" },
   { name: "Restaurantes", kind: "variable", color: "#C2410C" },

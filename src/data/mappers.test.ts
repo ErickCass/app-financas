@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  budgetFromRow,
-  budgetToRow,
-  cents,
-  plannedFromRow,
-  transactionFromRow,
-  transactionToRow,
-} from "./mappers";
+import { budgetFromRow, budgetToRow, cents, plannedFromRow, transactionFromRow, transactionPatchToRow, transactionToRow } from "./mappers";
 import { buildHistory } from "@/domain/history";
 import type { Transaction } from "@/domain/types";
 
@@ -92,5 +85,17 @@ describe("histórico das categorias", () => {
   it("assinatura cobrada no dia 1 tem curva cheia desde o início", () => {
     const h = buildHistory([tx("2026-10-01", -5_000, "assin"), tx("2026-09-01", -5_000, "assin")], "2026-11-09");
     expect(h[0]!.cumulativeShare[0]).toBe(1);
+  });
+});
+
+describe("campos de edição de um lançamento", () => {
+  it("traduz para os nomes das colunas e ignora o que não mudou", () => {
+    expect(transactionPatchToRow({ description: "Salário", amount: -1234, date: "2026-11-15" })).toEqual({
+      description: "Salário",
+      amount_cents: -1234,
+      date: "2026-11-15",
+    });
+    expect(transactionPatchToRow({ categoryId: null })).toEqual({ category_id: null });
+    expect(transactionPatchToRow({})).toEqual({});
   });
 });

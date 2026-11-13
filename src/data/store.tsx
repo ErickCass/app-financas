@@ -191,22 +191,20 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           () => remote.markInternal(ids),
         );
       },
-      removeTransaction: (id: string) => {
+      // Grava primeiro: se o banco recusar, a tela mostra o erro em vez de voltar em silêncio.
+      removeTransaction: async (id: string) => {
         const tx = data.transactions.find((t) => t.id === id);
-        return optimistic(
-          (d) => ({
-            ...d,
-            transactions: d.transactions.filter((t) => t.id !== id),
-            planned: tx?.plannedId ? d.planned.map((p) => (p.id === tx.plannedId ? { ...p, status: "pending" as const } : p)) : d.planned,
-          }),
-          () => remote.deleteTransaction(id, tx?.plannedId),
-        );
+        if (!isDemo) await remote.deleteTransaction(id, tx?.plannedId);
+        setData((d) => ({
+          ...d,
+          transactions: d.transactions.filter((t) => t.id !== id),
+          planned: tx?.plannedId ? d.planned.map((p) => (p.id === tx.plannedId ? { ...p, status: "pending" as const } : p)) : d.planned,
+        }));
       },
-      updateTransaction: (id: string, patch: { description?: string; amount?: number; date?: string }) =>
-        optimistic(
-          (d) => ({ ...d, transactions: d.transactions.map((t) => (t.id === id ? { ...t, ...patch } : t)) }),
-          () => remote.updateTransaction(id, patch),
-        ),
+      updateTransaction: async (id: string, patch: { description?: string; amount?: number; date?: string }) => {
+        if (!isDemo) await remote.updateTransaction(id, patch);
+        setData((d) => ({ ...d, transactions: d.transactions.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
+      },
       clearClassification: (ids: string[], forgetRule = false) => {
         const set = new Set(ids);
         const first = data.transactions.find((t) => set.has(t.id));
