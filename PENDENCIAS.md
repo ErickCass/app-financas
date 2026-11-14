@@ -9,19 +9,6 @@ Se aparecer "Success. No rows returned", deu certo.
 
 ---
 
-## 0. App Store Connect — criar o registro do app (necessário para o TestFlight)
-
-Em `appstoreconnect.apple.com` → **My Apps** → **+** → **New App**:
-- Platforms: **iOS**
-- Name: **Finia** (se a Apple disser que já existe, use **Finia Finanças**; muda depois)
-- Primary Language: **Portuguese (Brazil)**
-- Bundle ID: **com.erickalmeida.financas** (já aparece na lista; eu registrei)
-- SKU: **finia-ios**
-- User Access: **Full Access**
-
-Não mexa no registro **FINITY** (`com.autonomousfinance.app`): é do projeto antigo.
-Fica lá sem atrapalhar; apagamos depois.
-
 ## 4. Reimportar os 5 extratos
 
 Depois dos scripts acima, em **Importar** no app: fatura Itaú (PDF), extrato Itaú
@@ -64,6 +51,7 @@ aceitar o convite que chega por e-mail.
 
 ## Feito
 
+- 14/11 — Registro do app Finia no App Store Connect; primeiro build enviado ao TestFlight.
 - 14/11 — Scripts SQL: conta "benefício", cópias automáticas de backup e recriação das categorias.
 - 14/11 — Chave de API do App Store Connect (`.p8`, Key ID, Issuer ID) e Team ID.
 - 14/11 — Domínios da Apple e `storage.googleapis.com` liberados no meu ambiente.
