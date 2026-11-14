@@ -43,7 +43,8 @@
       "expo-secure-store",
       "expo-local-authentication",
       "expo-web-browser",
-      "expo-sharing"
+      "expo-sharing",
+      "./plugins/withoutAppleSignIn.js"
     ],
     "experiments": {
       "typedRoutes": false
