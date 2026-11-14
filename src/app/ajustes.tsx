@@ -98,6 +98,18 @@ export default function Ajustes() {
         </>
       ) : null}
 
+      <SectionTitle>Seus dados</SectionTitle>
+      <Card style={{ gap: 10 }}>
+        <Text style={{ fontSize: 13, color: t.ink2, lineHeight: 18 }}>
+          Baixe uma cópia de tudo ou restaure a partir de um backup. Uma cópia automática é guardada por dia.
+        </Text>
+        <Link href="/backup" asChild>
+          <Pressable accessibilityRole="button" style={{ paddingVertical: 4 }}>
+            <Text style={{ fontSize: 16, color: t.accent, fontWeight: "600" }}>Backup e restauração</Text>
+          </Pressable>
+        </Link>
+      </Card>
+
           <SectionTitle>Aparência</SectionTitle>
       <Card>
         <View style={{ flexDirection: "row", padding: 2, borderRadius: 10, backgroundColor: t.track, gap: 2 }}>

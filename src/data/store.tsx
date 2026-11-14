@@ -12,6 +12,7 @@ import type { ImportPlan } from "@/import/plan";
 import { useAuth } from "./auth";
 import * as demo from "./demo";
 import * as remote from "./remote";
+import { runDailySnapshot } from "./autoBackup";
 
 export interface FinanceData {
   today: string;
@@ -113,6 +114,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       const loaded = await remote.loadFinanceData(today);
       setData({ today, ...loaded });
       setStatus("ready");
+      // Cópia de segurança do dia, depois que os dados já estão na tela.
+      void runDailySnapshot(userId);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setStatus("error");

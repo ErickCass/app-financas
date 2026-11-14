@@ -41,7 +41,8 @@
       "expo-secure-store",
       "expo-local-authentication",
       "expo-web-browser",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": false

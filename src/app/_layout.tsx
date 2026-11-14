@@ -34,6 +34,7 @@ function Shell() {
           <Stack.Screen name="previsto" options={{ presentation: "modal" }} />
           <Stack.Screen name="lancamento" options={{ presentation: "modal" }} />
           <Stack.Screen name="ajustes" />
+          <Stack.Screen name="backup" />
         </Stack>
       </FinanceProvider>
     </AuthProvider>
