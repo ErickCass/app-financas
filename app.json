@@ -13,8 +13,7 @@
       "infoPlist": {
         "NSFaceIDUsageDescription": "Usamos o Face ID para proteger seus dados financeiros.",
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "usesAppleSignIn": true
+      }
     },
     "android": {
       "package": "com.erickalmeida.financas",
@@ -44,7 +43,6 @@
       "expo-secure-store",
       "expo-local-authentication",
       "expo-web-browser",
-      "expo-apple-authentication",
       "expo-sharing"
     ],
     "experiments": {
