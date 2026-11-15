@@ -7,6 +7,11 @@ quando confirmar, movo para "Feito" com a data.
 
 ---
 
+## 0. Liberar mais um domínio no meu ambiente
+
+`update-assets-upload-production.storage.googleapis.com` — é por onde as
+correções chegam ao app do iPhone sem novo build (atualização automática).
+
 ## 1. TestFlight: instalar o Finia no iPhone ⏳ agora
 
 O build já foi enviado e a Apple está processando (5–10 min; chega um e-mail).
