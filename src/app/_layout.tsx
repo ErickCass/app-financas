@@ -6,10 +6,13 @@ import { FinanceProvider } from "@/data/store";
 import { useTheme } from "@/ui/theme";
 import { AppearanceProvider, useAppearance } from "@/ui/appearance";
 import { watchForWebUpdates } from "@/ui/webUpdate";
+import { useNativeUpdates } from "@/ui/nativeUpdate";
 
 export default function RootLayout() {
   // Na web: recarrega sozinho quando há versão nova publicada.
   useEffect(() => watchForWebUpdates(), []);
+  // No iPhone: aplica a versão nova assim que ela termina de baixar.
+  useNativeUpdates();
   return (
     <AppearanceProvider>
       <Shell />
