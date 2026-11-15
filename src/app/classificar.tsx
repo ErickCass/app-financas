@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 import { useFinance } from "@/data/store";
 import { formatBRL } from "@/domain/money";
@@ -26,7 +27,11 @@ export default function Classificar() {
   const f = useFinance();
   const [open, setOpen] = useState<string | null>(null);
   const [done, setDone] = useState(0);
-  const [last, setLast] = useState<{ ids: string[]; label: string; learned: boolean } | null>(null);
+  const [last, setLast] = useState<{
+    ids: string[];
+    label: string;
+    learned: boolean;
+  } | null>(null);
   // Lançamentos desmarcados dentro do grupo aberto (ficam de fora da classificação).
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const toggleOpen = (key: string | null) => {
@@ -35,6 +40,26 @@ export default function Classificar() {
   };
   const chosen = (g: Group) => g.items.filter((i) => !skipped.has(i.id));
   const [sort, setSort] = useState<"valor" | "data">("valor");
+  // Seleção múltipla: marca grupos inteiros, de lojas diferentes, e classifica todos de uma vez.
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const insets = useSafeAreaInsets();
+  const startSelecting = () => {
+    toggleOpen(null);
+    setPicked(new Set());
+    setSelecting(true);
+  };
+  const stopSelecting = () => {
+    setSelecting(false);
+    setPicked(new Set());
+  };
+  const togglePick = (key: string) =>
+    setPicked((s) => {
+      const n = new Set(s);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
+      return n;
+    });
 
   const groups = useMemo(() => {
     const map = new Map<string, Group>();
@@ -42,21 +67,32 @@ export default function Classificar() {
       if (tx.categoryId || tx.isCardPayment) continue;
       const pattern = rulePattern(tx.description);
       const key = pattern.length >= 3 ? pattern : `tx:${tx.id}`;
-      const g = map.get(key) ?? { key, title: tx.description, items: [], total: 0 };
+      const g = map.get(key) ?? {
+        key,
+        title: tx.description,
+        items: [],
+        total: 0,
+      };
       g.items.push(tx);
       g.total += tx.amount;
       map.set(key, g);
     }
     // Maiores primeiro: classificar o que mais pesa já resolve a maior parte do orçamento.
-    const latest = (g: Group) => g.items.reduce((m, x) => (x.date > m ? x.date : m), "");
+    const latest = (g: Group) =>
+      g.items.reduce((m, x) => (x.date > m ? x.date : m), "");
     return [...map.values()].sort((a, b) =>
-      sort === "data" ? latest(b).localeCompare(latest(a)) || Math.abs(b.total) - Math.abs(a.total) : Math.abs(b.total) - Math.abs(a.total),
+      sort === "data"
+        ? latest(b).localeCompare(latest(a)) ||
+          Math.abs(b.total) - Math.abs(a.total)
+        : Math.abs(b.total) - Math.abs(a.total),
     );
   }, [f.transactions, sort]);
 
   const pending = groups.reduce((a, g) => a + g.items.length, 0);
   // Ordem alfabética única, para achar a categoria de relance.
-  const choices = [...f.categories].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  const choices = [...f.categories].sort((a, b) =>
+    a.name.localeCompare(b.name, "pt-BR"),
+  );
 
   async function assign(g: Group, categoryId: string) {
     const items = chosen(g);
@@ -71,7 +107,42 @@ export default function Classificar() {
       label: `${items.length} em ${f.categories.find((c) => c.id === categoryId)?.name ?? "categoria"}`,
       learned: whole,
     });
-    await f.categorizeMany(items.map((i) => i.id), categoryId, whole);
+    await f.categorizeMany(
+      items.map((i) => i.id),
+      categoryId,
+      whole,
+    );
+  }
+
+  const pickedGroups = groups.filter((g) => picked.has(g.key));
+  const pickedItems = pickedGroups.flatMap((g) => g.items);
+  const pickedTotal = pickedItems.reduce((a, x) => a + x.amount, 0);
+
+  /**
+   * Classifica a seleção inteira. Não ensina regra: quem junta lojas diferentes
+   * numa categoria costuma estar pensando no contexto (uma viagem, um presente),
+   * e não em "esta loja é sempre isso".
+   */
+  async function assignPicked(categoryId: string) {
+    if (pickedItems.length === 0) return;
+    const ids = pickedItems.map((i) => i.id);
+    setDone((d) => d + ids.length);
+    setLast({
+      ids,
+      label: `${ids.length} em ${f.categories.find((c) => c.id === categoryId)?.name ?? "categoria"}`,
+      learned: false,
+    });
+    stopSelecting();
+    await f.categorizeMany(ids, categoryId, false);
+  }
+
+  async function transferPicked() {
+    if (pickedItems.length === 0) return;
+    const ids = pickedItems.map((i) => i.id);
+    setDone((d) => d + ids.length);
+    setLast({ ids, label: `${ids.length} como transferência`, learned: false });
+    stopSelecting();
+    await f.markInternal(ids);
   }
 
   async function undo() {
@@ -88,167 +159,518 @@ export default function Classificar() {
     if (items.length === g.items.length) toggleOpen(null);
     else setSkipped(new Set());
     setDone((d) => d + items.length);
-    setLast({ ids: items.map((i) => i.id), label: `${items.length} como transferência`, learned: false });
+    setLast({
+      ids: items.map((i) => i.id),
+      label: `${items.length} como transferência`,
+      learned: false,
+    });
     await f.markInternal(items.map((i) => i.id));
   }
 
   return (
-    <Screen>
-      <NavBar back="Voltar" />
-      <View style={{ gap: 6 }}>
-        <Text style={{ fontSize: 28, fontWeight: "700", color: t.ink, letterSpacing: -0.3 }}>Sem categoria</Text>
-        <Text style={{ fontSize: 15, color: t.ink2, lineHeight: 21 }}>
-          {pending === 0
-            ? done > 0
-              ? `Pronto! ${done} lançamentos classificados.`
-              : "Tudo classificado."
-            : `${pending} lançamento${pending > 1 ? "s" : ""} em ${groups.length} grupo${groups.length > 1 ? "s" : ""}. Escolha uma vez por loja ou pessoa: o app aplica a todos iguais e lembra nas próximas importações.`}
-        </Text>
-      </View>
-
-      {last ? (
-        <View
-          accessibilityRole="alert"
-          style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 14, paddingRight: 6, minHeight: 48, borderRadius: 14, backgroundColor: t.posSoft }}
-        >
-          <Text numberOfLines={1} style={{ flex: 1, fontSize: 15, color: t.ink }}>
-            ✓ {last.label}
+    <View style={{ flex: 1 }}>
+      <Screen>
+        <NavBar back="Voltar" />
+        <View style={{ gap: 6 }}>
+          <Text
+            style={{
+              fontSize: 28,
+              fontWeight: "700",
+              color: t.ink,
+              letterSpacing: -0.3,
+            }}
+          >
+            Sem categoria
           </Text>
-          <Pressable accessibilityRole="button" onPress={undo} style={{ height: 44, paddingHorizontal: 12, justifyContent: "center" }}>
-            <Text style={{ fontSize: 15, fontWeight: "700", color: t.accent }}>Desfazer</Text>
-          </Pressable>
+          <Text style={{ fontSize: 15, color: t.ink2, lineHeight: 21 }}>
+            {pending === 0
+              ? done > 0
+                ? `Pronto! ${done} lançamentos classificados.`
+                : "Tudo classificado."
+              : `${pending} lançamento${pending > 1 ? "s" : ""} em ${groups.length} grupo${groups.length > 1 ? "s" : ""}. Escolha uma vez por loja ou pessoa: o app aplica a todos iguais e lembra nas próximas importações.`}
+          </Text>
         </View>
-      ) : null}
 
-      {groups.length > 1 ? (
-        <View accessibilityRole="tablist" style={{ flexDirection: "row", padding: 2, borderRadius: 10, backgroundColor: t.track, gap: 2 }}>
-          {(
-            [
-              ["valor", "Maior valor"],
-              ["data", "Mais recentes"],
-            ] as const
-          ).map(([k, label]) => (
-            <Pressable
-              key={k}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: sort === k }}
-              onPress={() => setSort(k)}
-              style={{ flex: 1, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: sort === k ? t.card : "transparent" }}
+        {last ? (
+          <View
+            accessibilityRole="alert"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              paddingLeft: 14,
+              paddingRight: 6,
+              minHeight: 48,
+              borderRadius: 14,
+              backgroundColor: t.posSoft,
+            }}
+          >
+            <Text
+              numberOfLines={1}
+              style={{ flex: 1, fontSize: 15, color: t.ink }}
             >
-              <Text style={{ fontSize: 14, fontWeight: sort === k ? "600" : "500", color: t.ink }}>{label}</Text>
+              ✓ {last.label}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={undo}
+              style={{
+                height: 44,
+                paddingHorizontal: 12,
+                justifyContent: "center",
+              }}
+            >
+              <Text
+                style={{ fontSize: 15, fontWeight: "700", color: t.accent }}
+              >
+                Desfazer
+              </Text>
             </Pressable>
-          ))}
-        </View>
-      ) : null}
+          </View>
+        ) : null}
 
-      {groups.length > 0 ? (
-        <Card style={{ gap: 0, paddingVertical: 4 }}>
-          {groups.map((g, i) => {
-            const isOpen = open === g.key;
-            const dates = g.items.map((x) => x.date).sort();
-            const accounts = [...new Set(g.items.map((x) => f.accounts.find((a) => a.id === x.accountId)?.name ?? ""))].join(", ");
-            return (
-              <View key={g.key} style={{ borderBottomWidth: i < groups.length - 1 ? 1 : 0, borderBottomColor: t.line }}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityHint="Toque para escolher a categoria"
-                  accessibilityState={{ expanded: isOpen }}
-                  onPress={() => toggleOpen(isOpen ? null : g.key)}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 }}
+        {groups.length > 0 ? (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            {selecting ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  setPicked(
+                    picked.size === groups.length
+                      ? new Set()
+                      : new Set(groups.map((g) => g.key)),
+                  )
+                }
+                style={{ height: 36, justifyContent: "center" }}
+              >
+                <Text
+                  style={{ fontSize: 15, color: t.accent, fontWeight: "600" }}
                 >
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text numberOfLines={1} style={{ fontSize: 16, color: t.ink, fontWeight: "500" }}>
-                      {g.title}
-                    </Text>
-                    <Text numberOfLines={1} style={{ fontSize: 13, color: t.ink2 }}>
-                      {g.items.length > 1 ? `${g.items.length}× · ${shortDate(dates[0]!)} a ${shortDate(dates.at(-1)!)}` : shortDate(dates[0]!)} · {accounts}
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 16, fontWeight: "600", color: g.total > 0 ? t.pos : t.ink, fontVariant: ["tabular-nums"] }}>
-                    {g.total > 0 ? "+" : ""}
-                    {formatBRL(Math.abs(g.total))}
-                  </Text>
-                </Pressable>
-                {isOpen ? (
-                  <View style={{ gap: 10, paddingBottom: 14 }}>
-                    {g.items.length > 1 ? (
-                      <View>
-                        <Text style={{ fontSize: 13, color: t.ink2, paddingBottom: 4 }}>
-                          Desmarque o que for de outra categoria; depois classifique o restante.
-                        </Text>
-                        {g.items.map((x) => {
-                          const on = !skipped.has(x.id);
-                          return (
-                            <Pressable
-                              key={x.id}
-                              accessibilityRole="checkbox"
-                              accessibilityState={{ checked: on }}
-                              onPress={() =>
-                                setSkipped((s) => {
-                                  const n = new Set(s);
-                                  if (on) n.add(x.id);
-                                  else n.delete(x.id);
-                                  return n;
-                                })
-                              }
-                              style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 36 }}
-                            >
-                              <View
-                                style={{
-                                  width: 20,
-                                  height: 20,
-                                  borderRadius: 6,
-                                  borderWidth: on ? 0 : 1.5,
-                                  borderColor: t.ink3,
-                                  backgroundColor: on ? t.accent : "transparent",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                {on ? <Text style={{ color: t.onAccent, fontSize: 13, fontWeight: "700" }}>✓</Text> : null}
-                              </View>
-                              <Text numberOfLines={1} style={{ flex: 1, fontSize: 14, color: on ? t.ink : t.ink2 }}>
-                                {shortDate(x.date)} · {x.description}
-                              </Text>
-                              <Text style={{ fontSize: 14, color: on ? t.ink : t.ink2, fontVariant: ["tabular-nums"] }}>
-                                {formatBRL(Math.abs(x.amount))}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
+                  {picked.size === groups.length
+                    ? "Desmarcar todos"
+                    : "Selecionar todos"}
+                </Text>
+              </Pressable>
+            ) : (
+              <View />
+            )}
+            <Pressable
+              accessibilityRole="button"
+              onPress={selecting ? stopSelecting : startSelecting}
+              style={{
+                height: 36,
+                justifyContent: "center",
+                paddingHorizontal: 4,
+              }}
+            >
+              <Text
+                style={{ fontSize: 15, color: t.accent, fontWeight: "600" }}
+              >
+                {selecting ? "Cancelar" : "Selecionar"}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {groups.length > 1 ? (
+          <View
+            accessibilityRole="tablist"
+            style={{
+              flexDirection: "row",
+              padding: 2,
+              borderRadius: 10,
+              backgroundColor: t.track,
+              gap: 2,
+            }}
+          >
+            {(
+              [
+                ["valor", "Maior valor"],
+                ["data", "Mais recentes"],
+              ] as const
+            ).map(([k, label]) => (
+              <Pressable
+                key={k}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: sort === k }}
+                onPress={() => setSort(k)}
+                style={{
+                  flex: 1,
+                  height: 32,
+                  borderRadius: 8,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: sort === k ? t.card : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: sort === k ? "600" : "500",
+                    color: t.ink,
+                  }}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        {groups.length > 0 ? (
+          <Card style={{ gap: 0, paddingVertical: 4 }}>
+            {groups.map((g, i) => {
+              const isOpen = !selecting && open === g.key;
+              const isPicked = picked.has(g.key);
+              const dates = g.items.map((x) => x.date).sort();
+              const accounts = [
+                ...new Set(
+                  g.items.map(
+                    (x) =>
+                      f.accounts.find((a) => a.id === x.accountId)?.name ?? "",
+                  ),
+                ),
+              ].join(", ");
+              return (
+                <View
+                  key={g.key}
+                  style={{
+                    borderBottomWidth: i < groups.length - 1 ? 1 : 0,
+                    borderBottomColor: t.line,
+                  }}
+                >
+                  <Pressable
+                    accessibilityRole={selecting ? "checkbox" : "button"}
+                    accessibilityHint={
+                      selecting ? undefined : "Toque para escolher a categoria"
+                    }
+                    accessibilityState={
+                      selecting ? { checked: isPicked } : { expanded: isOpen }
+                    }
+                    onPress={() =>
+                      selecting
+                        ? togglePick(g.key)
+                        : toggleOpen(isOpen ? null : g.key)
+                    }
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
+                      paddingVertical: 12,
+                    }}
+                  >
+                    {selecting ? (
+                      <View
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          borderWidth: isPicked ? 0 : 1.5,
+                          borderColor: t.ink3,
+                          backgroundColor: isPicked ? t.accent : "transparent",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {isPicked ? (
+                          <Text
+                            style={{
+                              color: t.onAccent,
+                              fontSize: 13,
+                              fontWeight: "700",
+                            }}
+                          >
+                            ✓
+                          </Text>
+                        ) : null}
                       </View>
                     ) : null}
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                      {choices.map((c) => (
-                        <Pressable
-                          key={c.id}
-                          accessibilityRole="button"
-                          onPress={() => assign(g, c.id)}
-                          style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, height: 34, borderRadius: 17, backgroundColor: t.track }}
-                        >
-                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.color }} />
-                          <Text style={{ color: t.ink, fontSize: 14 }}>{c.name}</Text>
-                        </Pressable>
-                      ))}
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityHint="Pagamento de fatura ou PIX entre contas suas: não conta no orçamento"
-                        onPress={() => transfer(g)}
-                        style={{ paddingHorizontal: 12, height: 34, borderRadius: 17, justifyContent: "center", borderWidth: 1, borderColor: t.line }}
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          fontSize: 16,
+                          color: t.ink,
+                          fontWeight: "500",
+                        }}
                       >
-                        <Text style={{ color: t.ink2, fontSize: 14 }}>Transferência entre minhas contas</Text>
-                      </Pressable>
+                        {g.title}
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        style={{ fontSize: 13, color: t.ink2 }}
+                      >
+                        {g.items.length > 1
+                          ? `${g.items.length}× · ${shortDate(dates[0]!)} a ${shortDate(dates.at(-1)!)}`
+                          : shortDate(dates[0]!)}{" "}
+                        · {accounts}
+                      </Text>
                     </View>
-                  </View>
-                ) : null}
-              </View>
-            );
-          })}
-        </Card>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "600",
+                        color: g.total > 0 ? t.pos : t.ink,
+                        fontVariant: ["tabular-nums"],
+                      }}
+                    >
+                      {g.total > 0 ? "+" : ""}
+                      {formatBRL(Math.abs(g.total))}
+                    </Text>
+                  </Pressable>
+                  {isOpen ? (
+                    <View style={{ gap: 10, paddingBottom: 14 }}>
+                      {g.items.length > 1 ? (
+                        <View>
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              color: t.ink2,
+                              paddingBottom: 4,
+                            }}
+                          >
+                            Desmarque o que for de outra categoria; depois
+                            classifique o restante.
+                          </Text>
+                          {g.items.map((x) => {
+                            const on = !skipped.has(x.id);
+                            return (
+                              <Pressable
+                                key={x.id}
+                                accessibilityRole="checkbox"
+                                accessibilityState={{ checked: on }}
+                                onPress={() =>
+                                  setSkipped((s) => {
+                                    const n = new Set(s);
+                                    if (on) n.add(x.id);
+                                    else n.delete(x.id);
+                                    return n;
+                                  })
+                                }
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 10,
+                                  minHeight: 36,
+                                }}
+                              >
+                                <View
+                                  style={{
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: 6,
+                                    borderWidth: on ? 0 : 1.5,
+                                    borderColor: t.ink3,
+                                    backgroundColor: on
+                                      ? t.accent
+                                      : "transparent",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  {on ? (
+                                    <Text
+                                      style={{
+                                        color: t.onAccent,
+                                        fontSize: 13,
+                                        fontWeight: "700",
+                                      }}
+                                    >
+                                      ✓
+                                    </Text>
+                                  ) : null}
+                                </View>
+                                <Text
+                                  numberOfLines={1}
+                                  style={{
+                                    flex: 1,
+                                    fontSize: 14,
+                                    color: on ? t.ink : t.ink2,
+                                  }}
+                                >
+                                  {shortDate(x.date)} · {x.description}
+                                </Text>
+                                <Text
+                                  style={{
+                                    fontSize: 14,
+                                    color: on ? t.ink : t.ink2,
+                                    fontVariant: ["tabular-nums"],
+                                  }}
+                                >
+                                  {formatBRL(Math.abs(x.amount))}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      ) : null}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          flexWrap: "wrap",
+                          gap: 8,
+                        }}
+                      >
+                        {choices.map((c) => (
+                          <Pressable
+                            key={c.id}
+                            accessibilityRole="button"
+                            onPress={() => assign(g, c.id)}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                              paddingHorizontal: 12,
+                              height: 34,
+                              borderRadius: 17,
+                              backgroundColor: t.track,
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: 4,
+                                backgroundColor: c.color,
+                              }}
+                            />
+                            <Text style={{ color: t.ink, fontSize: 14 }}>
+                              {c.name}
+                            </Text>
+                          </Pressable>
+                        ))}
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityHint="Pagamento de fatura ou PIX entre contas suas: não conta no orçamento"
+                          onPress={() => transfer(g)}
+                          style={{
+                            paddingHorizontal: 12,
+                            height: 34,
+                            borderRadius: 17,
+                            justifyContent: "center",
+                            borderWidth: 1,
+                            borderColor: t.line,
+                          }}
+                        >
+                          <Text style={{ color: t.ink2, fontSize: 14 }}>
+                            Transferência entre minhas contas
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </Card>
+        ) : null}
+        <Link
+          href="/limites"
+          style={{
+            fontSize: 14,
+            color: t.accent,
+            fontWeight: "600",
+            textAlign: "center",
+            paddingVertical: 8,
+          }}
+        >
+          Faltou uma categoria? Criar categoria
+        </Link>
+        {/* Espaço para a barra de seleção não cobrir os últimos itens. */}
+        {selecting ? <View style={{ height: 150 }} /> : null}
+      </Screen>
+
+      {selecting && picked.size > 0 ? (
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            paddingTop: 12,
+            paddingBottom: insets.bottom + 12,
+            gap: 10,
+            backgroundColor: t.card,
+            borderTopWidth: 1,
+            borderTopColor: t.line,
+            shadowColor: "#000",
+            shadowOpacity: 0.12,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: -2 },
+            elevation: 8,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 15,
+              color: t.ink,
+              fontWeight: "600",
+              paddingHorizontal: 16,
+            }}
+          >
+            {pickedItems.length} lançamento{pickedItems.length > 1 ? "s" : ""} ·{" "}
+            {formatBRL(Math.abs(pickedTotal))}
+            <Text style={{ fontWeight: "400", color: t.ink2 }}>
+              {" "}
+              — escolha a categoria
+            </Text>
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+          >
+            {choices.map((c) => (
+              <Pressable
+                key={c.id}
+                accessibilityRole="button"
+                onPress={() => assignPicked(c.id)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingHorizontal: 12,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: t.track,
+                }}
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: c.color,
+                  }}
+                />
+                <Text style={{ color: t.ink, fontSize: 14 }}>{c.name}</Text>
+              </Pressable>
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              onPress={transferPicked}
+              style={{
+                paddingHorizontal: 12,
+                height: 36,
+                borderRadius: 18,
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: t.line,
+              }}
+            >
+              <Text style={{ color: t.ink2, fontSize: 14 }}>
+                Transferência entre minhas contas
+              </Text>
+            </Pressable>
+          </ScrollView>
+        </View>
       ) : null}
-      <Link href="/limites" style={{ fontSize: 14, color: t.accent, fontWeight: "600", textAlign: "center", paddingVertical: 8 }}>
-        Faltou uma categoria? Criar categoria
-      </Link>
-    </Screen>
+    </View>
   );
 }
