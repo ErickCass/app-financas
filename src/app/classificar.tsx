@@ -1,5 +1,12 @@
 import { useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 import { useFinance } from "@/data/store";
@@ -46,6 +53,10 @@ export default function Classificar() {
   const [selecting, setSelecting] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  // Painel de categorias da seleção: busca + grade, para achar uma entre dezenas.
+  const [chooser, setChooser] = useState(false);
+  const [query, setQuery] = useState("");
   const startSelecting = () => {
     toggleOpen(null);
     setPicked(new Set());
@@ -53,6 +64,8 @@ export default function Classificar() {
   };
   const stopSelecting = () => {
     setSelecting(false);
+    setChooser(false);
+    setQuery("");
     setPicked(new Set());
   };
   const togglePick = (key: string) =>
@@ -95,6 +108,14 @@ export default function Classificar() {
   const choices = [...f.categories].sort((a, b) =>
     a.name.localeCompare(b.name, "pt-BR"),
   );
+  const fold = (x: string) =>
+    x
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  const filtered = query.trim()
+    ? choices.filter((c) => fold(c.name).includes(fold(query.trim())))
+    : choices;
 
   async function assign(g: Group, categoryId: string) {
     const items = chosen(g);
@@ -608,9 +629,9 @@ export default function Classificar() {
             left: 0,
             right: 0,
             bottom: 0,
+            alignItems: "center",
             paddingTop: 12,
             paddingBottom: insets.bottom + 12,
-            gap: 10,
             backgroundColor: t.card,
             borderTopWidth: 1,
             borderTopColor: t.line,
@@ -621,69 +642,147 @@ export default function Classificar() {
             elevation: 8,
           }}
         >
-          <Text
+          <View
             style={{
-              fontSize: 15,
-              color: t.ink,
-              fontWeight: "600",
+              width: "100%",
+              maxWidth: 680,
               paddingHorizontal: 16,
+              gap: 10,
             }}
           >
-            {pickedItems.length} lançamento{pickedItems.length > 1 ? "s" : ""} ·{" "}
-            {formatBRL(Math.abs(pickedTotal))}
-            <Text style={{ fontWeight: "400", color: t.ink2 }}>
-              {" "}
-              — escolha a categoria
-            </Text>
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
-          >
-            {choices.map((c) => (
-              <Pressable
-                key={c.id}
-                accessibilityRole="button"
-                onPress={() => assignPicked(c.id)}
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
+            >
+              <Text
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  paddingHorizontal: 12,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: t.track,
+                  flex: 1,
+                  fontSize: 15,
+                  color: t.ink,
+                  fontWeight: "600",
                 }}
               >
-                <View
+                {pickedItems.length} lançamento
+                {pickedItems.length > 1 ? "s" : ""} ·{" "}
+                {formatBRL(Math.abs(pickedTotal))}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setChooser((v) => !v);
+                  setQuery("");
+                }}
+                style={{
+                  height: 38,
+                  paddingHorizontal: 16,
+                  borderRadius: 19,
+                  justifyContent: "center",
+                  backgroundColor: chooser ? t.track : t.accent,
+                }}
+              >
+                <Text
                   style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: c.color,
+                    fontSize: 15,
+                    fontWeight: "600",
+                    color: chooser ? t.ink : t.onAccent,
+                  }}
+                >
+                  {chooser ? "Fechar" : "Escolher categoria"}
+                </Text>
+              </Pressable>
+            </View>
+
+            {chooser ? (
+              <View style={{ gap: 10 }}>
+                <TextInput
+                  autoFocus
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Buscar categoria"
+                  placeholderTextColor={t.ink3}
+                  returnKeyType="done"
+                  onSubmitEditing={() => {
+                    // Enter com uma única categoria na lista já classifica.
+                    if (filtered.length === 1)
+                      void assignPicked(filtered[0]!.id);
+                  }}
+                  style={{
+                    height: 40,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: t.track,
+                    color: t.ink,
+                    fontSize: 16,
                   }}
                 />
-                <Text style={{ color: t.ink, fontSize: 14 }}>{c.name}</Text>
-              </Pressable>
-            ))}
-            <Pressable
-              accessibilityRole="button"
-              onPress={transferPicked}
-              style={{
-                paddingHorizontal: 12,
-                height: 36,
-                borderRadius: 18,
-                justifyContent: "center",
-                borderWidth: 1,
-                borderColor: t.line,
-              }}
-            >
-              <Text style={{ color: t.ink2, fontSize: 14 }}>
-                Transferência entre minhas contas
-              </Text>
-            </Pressable>
-          </ScrollView>
+                <ScrollView
+                  style={{ maxHeight: Math.round(height * 0.45) }}
+                  contentContainerStyle={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: 8,
+                  }}
+                >
+                  {filtered.map((c) => (
+                    <Pressable
+                      key={c.id}
+                      accessibilityRole="button"
+                      onPress={() => assignPicked(c.id)}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        paddingHorizontal: 12,
+                        height: 36,
+                        borderRadius: 18,
+                        backgroundColor: t.track,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: c.color,
+                        }}
+                      />
+                      <Text style={{ color: t.ink, fontSize: 14 }}>
+                        {c.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                  {filtered.length === 0 ? (
+                    <Text
+                      style={{
+                        color: t.ink2,
+                        fontSize: 14,
+                        paddingVertical: 8,
+                      }}
+                    >
+                      Nenhuma categoria com esse nome.
+                    </Text>
+                  ) : null}
+                  {query.trim() === "" ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={transferPicked}
+                      style={{
+                        paddingHorizontal: 12,
+                        height: 36,
+                        borderRadius: 18,
+                        justifyContent: "center",
+                        borderWidth: 1,
+                        borderColor: t.line,
+                      }}
+                    >
+                      <Text style={{ color: t.ink2, fontSize: 14 }}>
+                        Transferência entre minhas contas
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </ScrollView>
+              </View>
+            ) : null}
+          </View>
         </View>
       ) : null}
     </View>
