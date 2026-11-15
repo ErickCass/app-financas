@@ -25,3 +25,45 @@ export function reloadWebApp(): void {
   if (Platform.OS !== "web" || typeof window === "undefined") return;
   window.location.reload();
 }
+
+const RELOAD_GUARD = "finia.reloadedFor";
+
+/**
+ * Mantém a versão web em dia sem depender de gesto nenhum (no computador não há
+ * "puxar para baixo"). Verifica ao abrir o app e sempre que a aba volta a ficar
+ * visível; se houver versão nova, recarrega. Recarregar só nesses momentos evita
+ * interromper alguém no meio de uma ação.
+ *
+ * A trava em sessionStorage impede um ciclo de recarregamentos caso o navegador
+ * insista em servir a página antiga: tenta uma vez por versão publicada.
+ */
+export function watchForWebUpdates(): () => void {
+  if (Platform.OS !== "web" || typeof document === "undefined") return () => {};
+
+  const check = async () => {
+    try {
+      const res = await fetch(`/version.json?_=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const published = ((await res.json()) as { buildId?: unknown })?.buildId;
+      if (typeof published !== "string" || !published || published === BUILD_ID) return;
+      let tried: string | null = null;
+      try {
+        tried = sessionStorage.getItem(RELOAD_GUARD);
+        sessionStorage.setItem(RELOAD_GUARD, published);
+      } catch {
+        // Sem sessionStorage (modo privado antigo): recarrega mesmo assim, uma vez por visita.
+      }
+      if (tried === published) return;
+      window.location.reload();
+    } catch {
+      // Sem rede: tenta de novo na próxima vez que a aba ficar visível.
+    }
+  };
+
+  const onVisible = () => {
+    if (document.visibilityState === "visible") void check();
+  };
+  void check();
+  document.addEventListener("visibilitychange", onVisible);
+  return () => document.removeEventListener("visibilitychange", onVisible);
+}

@@ -1,11 +1,15 @@
+import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/data/auth";
 import { FinanceProvider } from "@/data/store";
 import { useTheme } from "@/ui/theme";
 import { AppearanceProvider, useAppearance } from "@/ui/appearance";
+import { watchForWebUpdates } from "@/ui/webUpdate";
 
 export default function RootLayout() {
+  // Na web: recarrega sozinho quando há versão nova publicada.
+  useEffect(() => watchForWebUpdates(), []);
   return (
     <AppearanceProvider>
       <Shell />
