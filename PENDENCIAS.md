@@ -21,13 +21,6 @@ O build já foi enviado e a Apple está processando (5–10 min; chega um e-mail
 No app nativo, entre com o **código por e-mail** (Google e Apple ainda não
 funcionam nele).
 
-## 2. Reimportar os 5 extratos
-
-Pelo **navegador** (`finiapp.pages.dev`), porque o app nativo ainda não lê PDF.
-Em **Importar**: fatura Itaú (PDF), extrato Itaú (PDF), extrato do app Itaú (PDF),
-Nubank (CSV) e Flash (CSV). As regras de classificação aprendidas se perderam;
-reclassifique uma vez e o app reaprende.
-
 ## 3. Testar o backup de ponta a ponta
 
 Depois da reimportação: **Ajustes → Seus dados → Backup e restauração** →
@@ -67,6 +60,7 @@ projeto antigo. Não atrapalha, mas pode ser removido quando quiser.
 
 ## Feito
 
+- 14/11: Extratos reimportados; app TestFlight instalado.
 - 14/11: Registro do app Finia no App Store Connect; primeiro build enviado ao TestFlight.
 - 14/11: Scripts SQL (conta "benefício", cópias automáticas de backup, recriação das categorias).
 - 14/11: Chave de API do App Store Connect (`.p8`, Key ID, Issuer ID) e Team ID.
