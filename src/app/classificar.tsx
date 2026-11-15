@@ -31,6 +31,8 @@ export default function Classificar() {
     ids: string[];
     label: string;
     learned: boolean;
+    /** Seleção múltipla: um lote por loja, para desfazer esquecer cada regra. */
+    batches?: string[][];
   } | null>(null);
   // Lançamentos desmarcados dentro do grupo aberto (ficam de fora da classificação).
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
@@ -119,21 +121,29 @@ export default function Classificar() {
   const pickedTotal = pickedItems.reduce((a, x) => a + x.amount, 0);
 
   /**
-   * Classifica a seleção inteira. Não ensina regra: quem junta lojas diferentes
-   * numa categoria costuma estar pensando no contexto (uma viagem, um presente),
-   * e não em "esta loja é sempre isso".
+   * Classifica a seleção inteira e ensina o app: cada loja selecionada passa a
+   * cair nessa categoria nas próximas importações. Lançamentos sem padrão de loja
+   * reconhecível (descrição curta demais) são classificados sem virar regra.
    */
   async function assignPicked(categoryId: string) {
     if (pickedItems.length === 0) return;
-    const ids = pickedItems.map((i) => i.id);
+    const batches = pickedGroups.map((g) => g.items.map((i) => i.id));
+    const ids = batches.flat();
     setDone((d) => d + ids.length);
     setLast({
       ids,
       label: `${ids.length} em ${f.categories.find((c) => c.id === categoryId)?.name ?? "categoria"}`,
-      learned: false,
+      learned: true,
+      batches,
     });
     stopSelecting();
-    await f.categorizeMany(ids, categoryId, false);
+    for (const g of pickedGroups) {
+      await f.categorizeMany(
+        g.items.map((i) => i.id),
+        categoryId,
+        !g.key.startsWith("tx:"),
+      );
+    }
   }
 
   async function transferPicked() {
@@ -150,6 +160,11 @@ export default function Classificar() {
     const action = last;
     setLast(null);
     setDone((d) => Math.max(0, d - action.ids.length));
+    if (action.batches) {
+      for (const batch of action.batches)
+        await f.clearClassification(batch, action.learned);
+      return;
+    }
     await f.clearClassification(action.ids, action.learned);
   }
 
