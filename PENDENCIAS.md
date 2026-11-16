@@ -13,6 +13,15 @@ O app **FINITY** (`com.autonomousfinance.app`) é do projeto antigo. Não atrapa
 
 ---
 
+## Meu backlog (Claude) — faço quando você pedir
+
+1. **Finia para a família** — compartilhar com membros, gastos agregados, rateio por
+   pessoa por categoria, decisões só do responsável. Desenho proposto em 16/11; faltam
+   três decisões suas (quem importa o quê, caixa único ou não, o que um membro vê).
+   Baixa prioridade; retomo quando você pedir.
+2. **Cookbook do próximo app** — estrutura criada como doc em 16/11; preencher.
+3. Polimento de erros e telas vazias; página do finiapp.com.br; leitura de PDF no app nativo.
+
 ## Recorrente
 
 - **Até 15/04/2027 — renovar o segredo do Sign in with Apple.** O atual vence em
