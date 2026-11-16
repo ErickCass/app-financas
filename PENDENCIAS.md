@@ -14,12 +14,6 @@ Rodar o script `separar-mastercard.sql` (enviado no chat em 16/11). Ele cria o c
 Visa 9265. Não apaga nada e pode rodar mais de uma vez. Esperado na tabelinha final:
 9121 com 38 compras somando −1117.07. Se vier com 0, importar a fatura **no site**.
 
-## 3. Sign in with Apple — **no Supabase → Authentication → Providers → Apple**
-
-Ligar, preencher **Client IDs** (`com.erickalmeida.financas.web,com.erickalmeida.financas`)
-e **Secret Key** (enviado no chat em 16/11), salvar. Depois testar **no site** e,
-quando o build novo chegar ao TestFlight, **no app do iPhone**.
-
 ## 4. Apagar o registro antigo FINITY — **no App Store Connect** (opcional)
 
 O app **FINITY** (`com.autonomousfinance.app`) é do projeto antigo. Não atrapalha.
@@ -34,6 +28,7 @@ O app **FINITY** (`com.autonomousfinance.app`) é do projeto antigo. Não atrapa
 
 ## Feito
 
+- 16/11: Sign in with Apple testado e funcionando (site e iPhone).
 - 16/11: Login com Google testado no domínio novo.
 - 16/11: Sign in with Apple configurado em developer.apple.com (App ID, Services ID e chave).
 - 16/11: Endereços novos cadastrados no Supabase (Site URL e Redirect URLs).
