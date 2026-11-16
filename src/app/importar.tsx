@@ -5,7 +5,6 @@ import { useFinance } from "@/data/store";
 import * as remote from "@/data/remote";
 import { formatBRL } from "@/domain/money";
 import { shortDate } from "@/domain/dates";
-import type { Account } from "@/domain/types";
 import type { LearnedRule } from "@/import/categorize";
 import { buildImportPlan, importKeys } from "@/import/plan";
 import { parseStatementFile, pickStatementFile } from "@/import/readFile";

@@ -200,8 +200,9 @@ export default function Orcamento() {
                 )}
               </View>
               <Text
+                numberOfLines={1}
                 style={{
-                  width: 44,
+                  minWidth: 52,
                   textAlign: "right",
                   fontSize: 15,
                   fontWeight: "600",
