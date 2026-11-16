@@ -57,23 +57,34 @@ export default function Saidas() {
     </Text>
   );
 
-  const Line = ({ label, value, strong, sign }: { label: string; value: number; strong?: boolean; sign?: string }) => (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 }}>
-      <Text style={{ fontSize: strong ? 16 : 15, color: strong ? t.ink : t.ink2, fontWeight: strong ? "600" : "400" }}>{label}</Text>
-      <Text
-        style={{
-          fontSize: strong ? 17 : 15,
-          fontWeight: strong ? "700" : "500",
-          fontVariant: ["tabular-nums"],
-          color: strong && value < 0 ? t.neg : t.ink,
-        }}
-      >
-        {sign ?? ""}
-        {formatBRL(Math.abs(value))}
-        {strong && value < 0 ? " negativo" : ""}
-      </Text>
-    </View>
-  );
+  /**
+   * Linha do resumo. `kind` decide o sinal mostrado: o saldo de hoje e o previsto
+   * aparecem com o sinal real (conta no limite fica "−R$" em vermelho); entradas e
+   * saídas aparecem como "+" e "−" sobre o valor absoluto.
+   */
+  const Line = ({ label, value, kind }: { label: string; value: number; kind: "saldo" | "entra" | "sai" | "previsto" }) => {
+    const strong = kind === "previsto";
+    const negative = (kind === "saldo" || kind === "previsto") && value < 0;
+    const text =
+      kind === "entra" ? `+ ${formatBRL(value)}` : kind === "sai" ? `− ${formatBRL(value)}` : formatBRL(value);
+    return (
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 12, paddingVertical: 3 }}>
+        <Text style={{ flexShrink: 1, fontSize: strong ? 16 : 15, color: strong ? t.ink : t.ink2, fontWeight: strong ? "600" : "400" }}>
+          {label}
+        </Text>
+        <Text
+          style={{
+            fontSize: strong ? 17 : 15,
+            fontWeight: strong ? "700" : "500",
+            fontVariant: ["tabular-nums"],
+            color: negative ? t.neg : t.ink,
+          }}
+        >
+          {text}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <Screen>
@@ -87,11 +98,11 @@ export default function Saidas() {
       </Text>
 
       <Card style={{ gap: 2 }}>
-        <Line label="Saldo hoje" value={c.balanceToday} />
-        {c.incomePending > 0 ? <Line label="A receber" value={c.incomePending} sign="+ " /> : null}
-        <Line label="Sai da conta" value={c.toLeave} sign="− " />
+        <Line label="Saldo hoje" value={c.balanceToday} kind="saldo" />
+        {c.incomePending > 0 ? <Line label="A receber" value={c.incomePending} kind="entra" /> : null}
+        <Line label="Sai da conta" value={c.toLeave} kind="sai" />
         <View style={{ height: 1, backgroundColor: t.line, marginVertical: 6 }} />
-        <Line label={`Saldo previsto em ${end}`} value={c.projectedBalance} strong />
+        <Line label={`Saldo previsto em ${end}`} value={c.projectedBalance} kind="previsto" />
         <Text style={{ fontSize: 12, color: t.ink3, paddingTop: 6, lineHeight: 16 }}>
           Não inclui gastos variáveis que você ainda vai fazer no débito ou no PIX.
         </Text>
