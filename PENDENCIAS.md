@@ -7,14 +7,7 @@ quando confirmar, movo para "Feito" com a data.
 
 ---
 
-## 1. Separar as compras do Mastercard 9121 — **no Supabase → SQL Editor**
-
-Rodar o script `separar-mastercard.sql` (enviado no chat em 16/11). Ele cria o cartão
-9121 e move para ele as 38 compras da fatura de novembro que entraram por engano no
-Visa 9265. Não apaga nada e pode rodar mais de uma vez. Esperado na tabelinha final:
-9121 com 38 compras somando −1117.07. Se vier com 0, importar a fatura **no site**.
-
-## 4. Apagar o registro antigo FINITY — **no App Store Connect** (opcional)
+## 1. Apagar o registro antigo FINITY — **no App Store Connect** (opcional)
 
 O app **FINITY** (`com.autonomousfinance.app`) é do projeto antigo. Não atrapalha.
 
@@ -28,6 +21,7 @@ O app **FINITY** (`com.autonomousfinance.app`) é do projeto antigo. Não atrapa
 
 ## Feito
 
+- 16/11: Compras do Mastercard 9121 separadas do Visa 9265 (38 compras, −1117,07; Visa com 207, −37.498,28, igual à fatura).
 - 16/11: Sign in with Apple testado e funcionando (site e iPhone).
 - 16/11: Login com Google testado no domínio novo.
 - 16/11: Sign in with Apple configurado em developer.apple.com (App ID, Services ID e chave).
