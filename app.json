@@ -42,10 +42,15 @@
         }
       ],
       "expo-secure-store",
-      "expo-local-authentication",
       "expo-web-browser",
       "expo-sharing",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O Finia usa o Face ID para desbloquear o app e proteger seus dados financeiros."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false

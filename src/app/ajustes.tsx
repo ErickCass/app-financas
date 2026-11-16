@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Switch, Text, View } from "react-native";
 import { Link, router } from "expo-router";
 import { useAuth } from "@/data/auth";
 import { useFinance } from "@/data/store";
@@ -11,6 +11,7 @@ import { useTheme } from "@/ui/theme";
 import { AccountMark, ACCOUNT_COLORS, accountColor } from "@/ui/AccountMark";
 import { pickCardImage } from "@/ui/cardImage";
 import { useAppearance } from "@/ui/appearance";
+import { useAppLock } from "@/ui/appLock";
 
 export default function Ajustes() {
   const t = useTheme();
@@ -19,6 +20,8 @@ export default function Ajustes() {
   const checking = f.accounts.filter((a) => a.kind === "checking" || a.kind === "cash");
   const [colorError, setColorError] = useState<string | null>(null);
   const appearance = useAppearance();
+  const lock = useAppLock();
+  const [lockError, setLockError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [value, setValue] = useState(0);
   const [negative, setNegative] = useState(false);
@@ -109,6 +112,30 @@ export default function Ajustes() {
           </Pressable>
         </Link>
       </Card>
+
+      {lock.available ? (
+        <>
+          <SectionTitle>Segurança</SectionTitle>
+          <Card style={{ gap: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Text style={{ flex: 1, fontSize: 16, color: t.ink }}>Desbloquear com {lock.label}</Text>
+              <Switch
+                accessibilityLabel={`Desbloquear com ${lock.label}`}
+                value={lock.enabled}
+                onValueChange={(on) => {
+                  setLockError(null);
+                  void lock.setEnabled(on).then(setLockError);
+                }}
+              />
+            </View>
+            <Text style={{ fontSize: 13, color: t.ink2, lineHeight: 18 }}>
+              O Finia pede {lock.label} ao abrir e ao voltar depois de um minuto fora, e esconde os valores na tela de
+              alternar apps.
+            </Text>
+            {lockError ? <Text style={{ fontSize: 13, color: t.neg }}>{lockError}</Text> : null}
+          </Card>
+        </>
+      ) : null}
 
           <SectionTitle>Aparência</SectionTitle>
       <Card>
