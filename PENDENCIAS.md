@@ -7,17 +7,11 @@ quando confirmar, movo para "Feito" com a data.
 
 ---
 
-## 1. Testar o backup de ponta a ponta
-
-Depois da reimportação: **Ajustes → Seus dados → Backup e restauração** →
-*Baixar backup agora*, depois *Restaurar de um arquivo* com esse mesmo arquivo.
-Se tudo continuar igual, a restauração funciona. Eu testei a lógica, não o seu banco.
-
-## 2. Fatura do Mastercard Personnalité
+## 1. Fatura do Mastercard Personnalité
 
 Exportar pelo app do Itaú e me mandar. Esse cartão está sem lançamentos no app.
 
-## 3. Google: login no domínio novo
+## 2. Google: login no domínio novo
 
 Adicionar `https://finiapp.pages.dev` em:
 - Google Cloud Console → Credentials → o cliente OAuth → **Authorized JavaScript origins**
@@ -26,7 +20,7 @@ Adicionar `https://finiapp.pages.dev` em:
 Pré-requisito: a conta erick.cassinoni não consegue editar o projeto do Google
 Cloud. Entre com a conta noreply ou dê à sua o papel **Owner** em IAM.
 
-## 4. Apple: Sign in with Apple
+## 3. Apple: Sign in with Apple
 
 Em developer.apple.com:
 - Marcar a capacidade **Sign in with Apple** no App ID `com.erickalmeida.financas`
@@ -37,7 +31,7 @@ Em developer.apple.com:
 Depois disso eu removo o plugin `withoutAppleSignIn` e gero um novo build. A Apple
 exige renovar o segredo a cada 6 meses, e eu aviso quando chegar perto.
 
-## 5. Apagar o registro antigo FINITY (opcional, sem pressa)
+## 4. Apagar o registro antigo FINITY (opcional, sem pressa)
 
 No App Store Connect existe o app **FINITY** (`com.autonomousfinance.app`) do
 projeto antigo. Não atrapalha, mas pode ser removido quando quiser.
@@ -46,6 +40,7 @@ projeto antigo. Não atrapalha, mas pode ser removido quando quiser.
 
 ## Feito
 
+- 16/11: Backup testado de ponta a ponta: 515 registros restaurados.
 - 14/11: Finia instalado pelo TestFlight; atualizações automáticas funcionando no iPhone.
 - 14/11: Domínio das atualizações automáticas liberado.
 - 14/11: Extratos reimportados; app TestFlight instalado.

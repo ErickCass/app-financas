@@ -1,30 +1,27 @@
 /**
- * Cópia automática: uma vez por dia, quando o app abre e os dados já carregaram.
+ * Cópia automática: uma por dia, quando o app abre e os dados já carregaram.
  *
- * Falha em silêncio de propósito. Se a tabela ainda não existe ou a rede caiu,
- * o usuário não tem nada a fazer a respeito — e um alerta sobre backup assusta
- * sem motivo. O estado real aparece na tela de Backup.
+ * Quem decide se "já copiou hoje" é a cópia mais recente no banco, não o
+ * aparelho: com iPhone, Mac e navegadores diferentes, cada um achava que era o
+ * primeiro do dia, e as 7 cópias guardadas cobriam só dois ou três dias.
+ *
+ * Falha em silêncio de propósito. Se a rede caiu, o usuário não tem nada a
+ * fazer a respeito, e a tela de Backup mostra a data da última cópia.
  */
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "./supabase";
 import { dueForSnapshot, saveSnapshot } from "./backup";
 
-const KEY = "finia.lastSnapshotAt";
-
-export async function lastSnapshotAt(): Promise<string | null> {
-  try {
-    return await AsyncStorage.getItem(KEY);
-  } catch {
-    return null;
-  }
+export async function latestSnapshotAt(): Promise<string | null> {
+  const res = await supabase.from("backups").select("created_at").order("created_at", { ascending: false }).limit(1);
+  if (res.error) throw new Error(res.error.message);
+  return (res.data as { created_at: string }[])[0]?.created_at ?? null;
 }
 
 export async function runDailySnapshot(userId: string): Promise<void> {
   try {
-    const last = await lastSnapshotAt();
-    if (!dueForSnapshot(last)) return;
-    const snap = await saveSnapshot(userId);
-    if (snap) await AsyncStorage.setItem(KEY, snap.createdAt);
+    if (!dueForSnapshot(await latestSnapshotAt())) return;
+    await saveSnapshot(userId);
   } catch {
-    // Sem backup hoje. A tela de Backup mostra a data da última cópia.
+    // Sem cópia agora; tenta de novo na próxima abertura.
   }
 }
