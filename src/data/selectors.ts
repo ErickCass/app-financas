@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { buildBudgetView } from "@/domain/budget";
 import { balanceTrajectory, buildMonthSummary, projectYearEnd } from "@/domain/projection";
 import { monthOf } from "@/domain/dates";
+import { buildCashOut } from "@/domain/cashOut";
 import { useFinance } from "./store";
 
 /** Orçamento por categoria. Padrão: gastos variáveis; passe "fixed" para as contas fixas. */
@@ -56,4 +57,21 @@ export function useMonthSummary() {
     const projectedTotal = limited.reduce((a, v) => a + v.projected, 0);
     return { ...summary, yearEnd, trajectory, limitsTotal, spentTotal, projectedTotal };
   }, [f, view]);
+}
+
+/** O que ainda sai da conta corrente até o fim do mês, por categoria (visão de caixa). */
+export function useCashOut() {
+  const f = useFinance();
+  return useMemo(
+    () =>
+      buildCashOut({
+        today: f.today,
+        accounts: f.accounts,
+        transactions: f.transactions,
+        planned: f.planned,
+        budgets: f.budgets,
+        categories: f.categories,
+      }),
+    [f.today, f.accounts, f.transactions, f.planned, f.budgets, f.categories],
+  );
 }

@@ -4,7 +4,7 @@ import { Link } from "expo-router";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useAuth } from "@/data/auth";
 import { useFinance } from "@/data/store";
-import { useBudgetView, useMonthSummary } from "@/data/selectors";
+import { useBudgetView, useCashOut, useMonthSummary } from "@/data/selectors";
 import { formatBRL } from "@/domain/money";
 import { dayOfMonth, lastDayOfMonth, shortDate } from "@/domain/dates";
 import { BalanceChart } from "@/ui/BalanceChart";
@@ -19,6 +19,7 @@ export default function Inicio() {
   const t = useTheme();
   const f = useFinance();
   const s = useMonthSummary();
+  const cash = useCashOut();
   const view = useBudgetView();
   const auth = useAuth();
   const [hidden, setHidden] = useState(false);
@@ -190,6 +191,25 @@ export default function Inicio() {
                 </View>
               </View>
             ))}
+          </Card>
+        </Pressable>
+      </Link>
+
+      <Link href="/saidas" asChild>
+        <Pressable accessibilityRole="link" accessibilityLabel="Até o fim do mês: o que ainda sai da conta, por categoria">
+          <Card style={{ gap: 6 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
+              <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>Até o fim do mês</Text>
+              <Text style={{ fontSize: 15, color: t.accent, fontWeight: "600" }}>Por categoria ›</Text>
+            </View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <Text style={{ fontSize: 15, color: t.ink2 }}>Ainda sai da conta</Text>
+              <Text style={{ fontSize: 15, fontWeight: "600", color: t.ink }}>{money(cash.toLeave)}</Text>
+            </View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <Text style={{ fontSize: 15, color: t.ink2 }}>Saldo previsto em {shortDate(lastDayOfMonth(cash.month))}</Text>
+              <Text style={{ fontSize: 15, fontWeight: "600", color: cash.projectedBalance < 0 ? t.neg : t.ink }}>{money(cash.projectedBalance)}</Text>
+            </View>
           </Card>
         </Pressable>
       </Link>

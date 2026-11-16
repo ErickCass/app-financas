@@ -59,3 +59,4 @@ public/pdfjs/
 # gerados a cada build (ver scripts/stamp-version.mjs)
 public/version.json
 src/buildId.ts
+.mc-local.mts

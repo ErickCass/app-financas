@@ -42,6 +42,7 @@ function Shell() {
           <Stack.Screen name="lancamento" options={{ presentation: "modal" }} />
           <Stack.Screen name="ajustes" />
           <Stack.Screen name="backup" />
+          <Stack.Screen name="saidas" />
         </Stack>
       </FinanceProvider>
     </AuthProvider>

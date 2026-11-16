@@ -185,17 +185,14 @@ describe("resumo do mês (números do mockup)", () => {
       ],
     });
     // Contas fixas: escola prevista 1.920 e nada pago nem previsto → falta tudo;
-    // condomínio previsto 1.200 já tem previsto avulso de 1.150 → falta 50.
-    expect(s.fixedRemaining).toEqual([
-      { categoryId: "escola", amount: 192_000 },
-      { categoryId: "condo", amount: 5_000 },
-    ]);
+    // condomínio previsto 1.200 já tem conta a pagar de 1.150 → coberto (dentro dos 10%).
+    expect(s.fixedRemaining).toEqual([{ categoryId: "escola", amount: 192_000 }]);
     expect(s.expensesPaid).toBe(624_010); // só o que saiu da conta (sem pagamento de fatura)
     // previstos pendentes (sem a fatura) + compras no cartão do mês líquidas do estorno
-    expect(s.expensesPending).toBe(115_000 + 108_000 + 33_981 + 40_000 + 192_000 + 5_000);
+    expect(s.expensesPending).toBe(115_000 + 108_000 + 33_981 + 40_000 + 192_000);
     expect(s.incomeReceived).toBe(1_420_000);
     expect(s.incomePending).toBe(92_000);
-    expect(s.projectedMonthEnd).toBe(1_238_040 + 92_000 - 296_981 - 197_000);
+    expect(s.projectedMonthEnd).toBe(1_238_040 + 92_000 - 296_981 - 192_000);
     expect(s.upcoming.map((p) => p.id)).toEqual(["p1", "p2", "p3", "p4"]);
   });
 

@@ -3,43 +3,40 @@
 Coisas que só você pode fazer. Eu cobro a cada conversa até você confirmar;
 quando confirmar, movo para "Feito" com a data.
 
-*Atualizado em 16/11/2026.*
+*Atualizado em 16/11/2026. Cada item diz onde fazer: no app do iPhone, no site (navegador), no Supabase etc.*
 
 ---
 
-## 1. Fatura do Mastercard Personnalité
+## 1. Separar as compras do Mastercard 9121 — **no Supabase → SQL Editor**
 
-Exportar pelo app do Itaú e me mandar. Esse cartão está sem lançamentos no app.
+Rodar o script `separar-mastercard.sql` (enviado no chat em 16/11). Ele cria o cartão
+9121 e move para ele as 38 compras da fatura de novembro que entraram por engano no
+Visa 9265. Não apaga nada e pode rodar mais de uma vez. Esperado na tabelinha final:
+9121 com 38 compras somando −1117.07. Se vier com 0, importar a fatura **no site**.
 
-## 2. Google: login no domínio novo
+## 2. Testar o login com Google — **no site (navegador)**
 
-Adicionar `https://finiapp.pages.dev` em:
-- Google Cloud Console → Credentials → o cliente OAuth → **Authorized JavaScript origins**
-- Supabase → Authentication → URL Configuration → **Redirect URLs** (`https://finiapp.pages.dev/**`)
+Sair e entrar com o Google em `finiapp.pages.dev`. Configuração no Supabase já feita.
 
-Pré-requisito: a conta erick.cassinoni não consegue editar o projeto do Google
-Cloud. Entre com a conta noreply ou dê à sua o papel **Owner** em IAM.
+## 3. Sign in with Apple — **em developer.apple.com, depois no Supabase**
 
-## 3. Apple: Sign in with Apple
+- Em developer.apple.com: marcar **Sign in with Apple** no App ID
+  `com.erickalmeida.financas`, criar um **Services ID** e uma chave `.p8` de login.
+- No Supabase → Authentication → Providers → Apple: cadastrar os dois.
 
-Em developer.apple.com:
-- Marcar a capacidade **Sign in with Apple** no App ID `com.erickalmeida.financas`
-  (a sincronização automática falhou e precisa ser feita à mão).
-- Criar um **Services ID** e uma chave `.p8` para o login.
-- Cadastrar os dois no Supabase → Authentication → Providers → Apple.
+Depois eu removo o plugin `withoutAppleSignIn` e gero um build novo. A Apple exige
+renovar o segredo a cada 6 meses; eu aviso quando chegar perto.
 
-Depois disso eu removo o plugin `withoutAppleSignIn` e gero um novo build. A Apple
-exige renovar o segredo a cada 6 meses, e eu aviso quando chegar perto.
+## 4. Apagar o registro antigo FINITY — **no App Store Connect** (opcional)
 
-## 4. Apagar o registro antigo FINITY (opcional, sem pressa)
-
-No App Store Connect existe o app **FINITY** (`com.autonomousfinance.app`) do
-projeto antigo. Não atrapalha, mas pode ser removido quando quiser.
+O app **FINITY** (`com.autonomousfinance.app`) é do projeto antigo. Não atrapalha.
 
 ---
 
 ## Feito
 
+- 16/11: Endereços novos cadastrados no Supabase (Site URL e Redirect URLs).
+- 16/11: Fatura do Mastercard Personnalité enviada.
 - 16/11: Backup testado de ponta a ponta: 515 registros restaurados.
 - 14/11: Finia instalado pelo TestFlight; atualizações automáticas funcionando no iPhone.
 - 14/11: Domínio das atualizações automáticas liberado.

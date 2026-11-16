@@ -12,6 +12,7 @@ import { parseStatementFile, pickStatementFile } from "@/import/readFile";
 import type { ParsedStatement } from "@/import/types";
 import { Card, Divider, Screen } from "@/ui/components";
 import { useTheme } from "@/ui/theme";
+import { defaultAccount, INSTITUTION, NEW } from "@/import/defaultAccount";
 
 type Phase =
   | { name: "pick" }
@@ -20,8 +21,6 @@ type Phase =
   | { name: "saving" }
   | { name: "done"; inserted: number; kind: ParsedStatement["kind"]; settled: number };
 
-const NEW = "__new__";
-const INSTITUTION: Record<ParsedStatement["institution"], string> = { itau: "Itaú", nubank: "Nubank", flash: "Flash" };
 
 /** Importar fatura de cartão ou extrato de conta, com prévia antes de gravar. */
 export default function Importar() {
@@ -222,17 +221,6 @@ export default function Importar() {
       {phase.name === "pick" && error ? <Text style={{ color: t.neg, textAlign: "center", lineHeight: 20 }}>{error}</Text> : null}
     </Screen>
   );
-}
-
-/** Cartão/conta do mesmo banco, se já existir; senão, a conta corrente única (extrato) ou um cartão novo. */
-function defaultAccount(st: ParsedStatement, accounts: Account[]): string {
-  const sameKind = accounts.filter((a) => a.kind === st.kind);
-  const bank = INSTITUTION[st.institution].normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  const byLast4 = st.last4 ? sameKind.find((a) => a.name.includes(st.last4!)) : undefined;
-  const byBank = sameKind.find((a) => a.name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().includes(bank));
-  if (byLast4 ?? byBank) return (byLast4 ?? byBank)!.id;
-  if ((st.kind === "checking" || st.kind === "benefit") && sameKind.length === 1) return sameKind[0]!.id;
-  return NEW;
 }
 
 function PickStep({ busy, demo, onChoose }: { busy: boolean; demo: boolean; onChoose: () => void }) {

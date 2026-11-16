@@ -60,9 +60,15 @@ describe("conta fixa quitada por aproximação", () => {
     expect(fixedRemaining(120_000, 119_172, 0)).toBe(0);
     expect(fixedRemaining(192_000, 187_339, 0)).toBe(0);
   });
+  it("conta a pagar já cadastrada perto do previsto cobre a conta fixa", () => {
+    // Condomínio cadastrado como R$ 1.150 contra R$ 1.200 previstos: não sobra "R$ 50 a pagar"
+    expect(fixedRemaining(120_000, 0, 115_000)).toBe(0);
+    expect(fixedRemaining(120_000, 60_000, 55_000)).toBe(0);
+  });
   it("pagamento parcial deixa a diferença", () => {
     expect(fixedRemaining(192_000, 64_000, 0)).toBe(128_000);
-    expect(fixedRemaining(120_000, 0, 115_000)).toBe(5_000);
+    // 1 de 3 mensalidades já cadastrada como conta a pagar: falta o resto
+    expect(fixedRemaining(192_000, 0, 64_000)).toBe(128_000);
     expect(fixedRemaining(0, 50_000, 0)).toBe(0);
   });
 });

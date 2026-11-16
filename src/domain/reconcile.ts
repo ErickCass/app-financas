@@ -66,13 +66,15 @@ export function matchPlannedToTransactions(planned: Planned[], transactions: Tra
 }
 
 /**
- * Conta fixa com valor previsto é dada como quitada quando o pago no mês chega perto
- * do previsto (±10%): condomínio de R$ 1.191,72 contra R$ 1.200 previstos não deixa
- * "R$ 8,28 a pagar". Abaixo disso, falta a diferença (ex.: 1 de 3 mensalidades).
+ * Conta fixa com valor previsto é dada como coberta quando o pago no mês, somado ao
+ * que já está cadastrado como conta a pagar, chega perto do previsto (±10%):
+ * condomínio de R$ 1.191,72 pago, ou de R$ 1.180 cadastrado, contra R$ 1.200
+ * previstos, não deixa "R$ 8,28" nem "R$ 20 a pagar". Abaixo disso, falta a
+ * diferença (ex.: 1 de 3 mensalidades).
  */
 export const SETTLE_TOLERANCE = 0.1;
 export function fixedRemaining(expected: number, spent: number, alreadyPlanned: number): number {
   if (expected <= 0) return 0;
-  if (spent >= expected * (1 - SETTLE_TOLERANCE)) return 0;
+  if (spent + alreadyPlanned >= expected * (1 - SETTLE_TOLERANCE)) return 0;
   return Math.max(expected - spent - alreadyPlanned, 0);
 }
