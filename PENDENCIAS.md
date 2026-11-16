@@ -18,14 +18,11 @@ Visa 9265. Não apaga nada e pode rodar mais de uma vez. Esperado na tabelinha f
 
 Sair e entrar com o Google em `finiapp.pages.dev`. Configuração no Supabase já feita.
 
-## 3. Sign in with Apple — **em developer.apple.com, depois no Supabase**
+## 3. Sign in with Apple — **no Supabase → Authentication → Providers → Apple**
 
-- Em developer.apple.com: marcar **Sign in with Apple** no App ID
-  `com.erickalmeida.financas`, criar um **Services ID** e uma chave `.p8` de login.
-- No Supabase → Authentication → Providers → Apple: cadastrar os dois.
-
-Depois eu removo o plugin `withoutAppleSignIn` e gero um build novo. A Apple exige
-renovar o segredo a cada 6 meses; eu aviso quando chegar perto.
+Ligar, preencher **Client IDs** (`com.erickalmeida.financas.web,com.erickalmeida.financas`)
+e **Secret Key** (enviado no chat em 16/11), salvar. Depois testar **no site** e,
+quando o build novo chegar ao TestFlight, **no app do iPhone**.
 
 ## 4. Apagar o registro antigo FINITY — **no App Store Connect** (opcional)
 
@@ -33,8 +30,15 @@ O app **FINITY** (`com.autonomousfinance.app`) é do projeto antigo. Não atrapa
 
 ---
 
+## Recorrente
+
+- **Até 15/04/2027 — renovar o segredo do Sign in with Apple.** O atual vence em
+  15/05/2027; depois disso o login com Apple para. Eu gero o novo; você só cola
+  **no Supabase → Providers → Apple → Secret Key**.
+
 ## Feito
 
+- 16/11: Sign in with Apple configurado em developer.apple.com (App ID, Services ID e chave).
 - 16/11: Endereços novos cadastrados no Supabase (Site URL e Redirect URLs).
 - 16/11: Fatura do Mastercard Personnalité enviada.
 - 16/11: Backup testado de ponta a ponta: 515 registros restaurados.
