@@ -72,6 +72,7 @@ describe("histórico das categorias", () => {
         tx("2026-09-15", -20_000),
         tx("2026-11-02", -99_000), // mês atual: não entra
         tx("2026-10-05", 5_000), // estorno: não entra
+        tx("2026-09-01", -1_000, "outra"), // dados importados desde o início de setembro
       ],
       "2026-11-09",
     );
@@ -82,6 +83,26 @@ describe("histórico das categorias", () => {
     // dia 31: 100% nos dois meses
     expect(m.cumulativeShare[30]).toBeCloseTo(1);
   });
+  it("ignora o mês coberto pela metade (só os últimos dias vieram numa fatura)", () => {
+    // Dados começam em 28/set: setembro está incompleto; só outubro e agosto não existem.
+    const h = buildHistory(
+      [tx("2026-09-28", -50_000), tx("2026-10-05", -20_000), tx("2026-10-25", -20_000)],
+      "2026-11-17",
+    );
+    // Só um mês completo (outubro): ainda não há histórico; o app usa o calendário.
+    expect(h.find((x) => x.categoryId === "mercado")).toBeUndefined();
+  });
+
+  it("com dois meses completos, a curva volta a valer", () => {
+    const h = buildHistory(
+      [tx("2026-09-02", -20_000), tx("2026-09-25", -20_000), tx("2026-10-05", -20_000), tx("2026-10-25", -20_000)],
+      "2026-11-17",
+    );
+    const m = h.find((x) => x.categoryId === "mercado")!;
+    expect(m.monthlyAverage).toBe(40_000);
+    expect(m.cumulativeShare[14]).toBeCloseTo(0.5); // dia 15: metade, nos dois meses
+  });
+
   it("assinatura cobrada no dia 1 tem curva cheia desde o início", () => {
     const h = buildHistory([tx("2026-10-01", -5_000, "assin"), tx("2026-09-01", -5_000, "assin")], "2026-11-09");
     expect(h[0]!.cumulativeShare[0]).toBe(1);

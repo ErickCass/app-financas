@@ -7,10 +7,24 @@ import { addMonths, dayOfMonth, daysInMonth, monthOf } from "./dates";
  * a média mensal e a curva média de "quanto do mês já tinha sido gasto até o dia d".
  * Só considera meses em que a categoria teve gasto, para uma categoria nova
  * não puxar a média para zero.
+ *
+ * Só entram meses COMPLETOS: os que começam depois do primeiro lançamento importado.
+ * Um mês coberto pela metade (ex.: só os últimos dias de setembro, que vieram numa
+ * fatura) parece "gastei tudo no fim do mês" e entorta a curva. E é preciso ter pelo
+ * menos MIN_MONTHS meses completos; antes disso a categoria fica sem histórico e o
+ * app usa o ritmo do calendário.
  */
+export const MIN_MONTHS = 2;
+/** Primeiro lançamento até este dia do mês: o mês conta como completo. */
+const FULL_FROM_DAY = 3;
 export function buildHistory(transactions: Transaction[], today: ISODate, months = 3): CategoryHistory[] {
   const current = monthOf(today);
-  const window = Array.from({ length: months }, (_, i) => addMonths(current, -(i + 1)));
+  const dates = transactions.filter((t) => !t.isCardPayment).map((t) => t.date);
+  const first = dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : null;
+  // Mês completo: o primeiro lançamento é anterior a ele, ou cai nos primeiros dias dele.
+  const complete = (m: string) =>
+    !!first && (monthOf(first) < m || (monthOf(first) === m && dayOfMonth(first) <= FULL_FROM_DAY));
+  const window = Array.from({ length: months }, (_, i) => addMonths(current, -(i + 1))).filter(complete);
 
   // gasto[categoria][mês][dia] em centavos
   const spend = new Map<string, Map<string, Cents[]>>();
@@ -41,7 +55,7 @@ export function buildHistory(transactions: Transaction[], today: ISODate, months
       });
       curves.push(curve);
     }
-    if (!curves.length) continue;
+    if (curves.length < MIN_MONTHS) continue;
     result.push({
       categoryId,
       monthlyAverage: Math.round(total / curves.length),
