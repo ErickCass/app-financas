@@ -7,13 +7,32 @@ import { useFinance } from "@/data/store";
 import { useBudgetView, useCashOut, useMonthSummary } from "@/data/selectors";
 import { formatBRL } from "@/domain/money";
 import { dayOfMonth, lastDayOfMonth, shortDate } from "@/domain/dates";
-import { BalanceChart } from "@/ui/BalanceChart";
-import { Card, Divider, PrimaryButton, ProgressBar, Screen } from "@/ui/components";
-import { SparkIcon } from "@/ui/icons";
-import { STATUS_COLOR, STATUS_LABEL, useTheme } from "@/ui/theme";
+import { Card, Divider, ProgressBar, Screen } from "@/ui/components";
+import { STATUS_COLOR, useTheme } from "@/ui/theme";
 
-const WEEKDAYS = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
-const MONTHS = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
+const WEEKDAYS = [
+  "DOMINGO",
+  "SEGUNDA",
+  "TERÇA",
+  "QUARTA",
+  "QUINTA",
+  "SEXTA",
+  "SÁBADO",
+];
+const MONTHS = [
+  "JANEIRO",
+  "FEVEREIRO",
+  "MARÇO",
+  "ABRIL",
+  "MAIO",
+  "JUNHO",
+  "JULHO",
+  "AGOSTO",
+  "SETEMBRO",
+  "OUTUBRO",
+  "NOVEMBRO",
+  "DEZEMBRO",
+];
 
 export default function Inicio() {
   const t = useTheme();
@@ -23,36 +42,106 @@ export default function Inicio() {
   const view = useBudgetView();
   const auth = useAuth();
   const [hidden, setHidden] = useState(false);
-  const initials = f.isDemo ? "EA" : (auth.email ?? "?").slice(0, 2).toUpperCase();
-  const isEmpty = !f.isDemo && f.transactions.length === 0 && f.budgets.length === 0;
-  const money = (c: number, o?: Parameters<typeof formatBRL>[1]) => (hidden ? "R$ •••" : formatBRL(c, o));
+  const initials = f.isDemo
+    ? "EA"
+    : (auth.email ?? "?").slice(0, 2).toUpperCase();
+  const isEmpty =
+    !f.isDemo && f.transactions.length === 0 && f.budgets.length === 0;
+  const money = (c: number, o?: Parameters<typeof formatBRL>[1]) =>
+    hidden ? "R$ •••" : formatBRL(c, o);
 
   const d = new Date(`${f.today}T12:00:00`);
   const dateLabel = `${WEEKDAYS[d.getDay()]}, ${dayOfMonth(f.today)} DE ${MONTHS[d.getMonth()]}`;
   const updated = new Date(f.balanceUpdatedAt);
   const updatedLabel = `Atualizado hoje, ${String(updated.getHours()).padStart(2, "0")}:${String(updated.getMinutes()).padStart(2, "0")}`;
-  const delta = s.projectedMonthEnd - s.balanceToday;
   const lastDayLabel = shortDate(lastDayOfMonth(s.month));
-  const attention = view.filter((v) => v.status === "estourou" || v.status === "vai").slice(0, 3);
-  const top = view.find((v) => v.status === "estourou") ?? view[0];
-  // Faturas de cartão em aberto: é por elas que as compras no cartão chegam ao saldo.
-  const bills = f.planned
-    .filter((p) => p.creditCardStatement && p.status !== "paid")
-    .sort((x, y) => x.dueDate.localeCompare(y.dueDate));
+  const attention = view
+    .filter((v) => v.status === "estourou" || v.status === "vai")
+    .slice(0, 3);
   // Vale-alimentação e afins: saldo próprio, mostrado à parte do caixa.
   const benefits = f.accounts.filter((a) => a.kind === "benefit");
+  const uncategorized = f.transactions.filter(
+    (tx) => !tx.categoryId && !tx.isCardPayment,
+  ).length;
+  // O que pede ação, nesta ordem: categorias estourando, contas que vencem em 7 dias, lançamentos sem categoria.
+  const todo: {
+    key: string;
+    title: string;
+    detail: string;
+    value?: string;
+    href: string;
+    color: string;
+  }[] = [
+    ...attention.map((v) => ({
+      key: `cat-${v.category.id}`,
+      title: v.category.name,
+      detail:
+        v.status === "estourou"
+          ? `Estourou: ${money(v.spent, { noCents: true })} de ${money(v.limit, { noCents: true })}`
+          : `Deve fechar em ${money(v.projected, { noCents: true })} de ${money(v.limit, { noCents: true })}`,
+      value: `${v.limit ? Math.round((v.spent / v.limit) * 100) : 0}%`,
+      href: `/categoria/${v.category.id}`,
+      color: STATUS_COLOR[v.status],
+    })),
+    ...s.upcoming
+      .filter((p) => p.amount < 0)
+      .map((p) => ({
+        key: `due-${p.id}`,
+        title: p.description,
+        detail: `Vence ${p.dueDate === f.today ? "hoje" : shortDate(p.dueDate)}${p.creditCardStatement ? " · ver as compras" : ""}`,
+        value: `${p.estimated ? "≈ " : ""}${money(-p.amount)}`,
+        href: p.creditCardStatement
+          ? `/fatura/${p.id}`
+          : `/previsto?id=${p.id}`,
+        color: t.accent,
+      })),
+    ...(uncategorized > 0
+      ? [
+          {
+            key: "classificar",
+            title: `${uncategorized} sem categoria`,
+            detail: "Classifique por loja de uma vez",
+            href: "/classificar",
+            color: t.ink3,
+          },
+        ]
+      : []),
+  ];
   const expTotal = s.expensesPaid + s.expensesPending;
   const incTotal = s.incomeReceived + s.incomePending;
 
   return (
     <Screen>
-      <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 4 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          paddingHorizontal: 4,
+        }}
+      >
         <View style={{ gap: 2, flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "600", color: t.ink2, letterSpacing: 0.3 }}>
+          <Text
+            numberOfLines={1}
+            style={{
+              fontSize: 13,
+              fontWeight: "600",
+              color: t.ink2,
+              letterSpacing: 0.3,
+            }}
+          >
             {dateLabel}
             {f.isDemo ? " · DEMONSTRAÇÃO" : ""}
           </Text>
-          <Text accessibilityRole="header" style={{ fontSize: 34, fontWeight: "700", color: t.ink, letterSpacing: -0.5 }}>
+          <Text
+            accessibilityRole="header"
+            style={{
+              fontSize: 34,
+              fontWeight: "700",
+              color: t.ink,
+              letterSpacing: -0.5,
+            }}
+          >
             Início
           </Text>
         </View>
@@ -61,9 +150,24 @@ export default function Inicio() {
             accessibilityRole="button"
             accessibilityLabel={hidden ? "Mostrar valores" : "Ocultar valores"}
             onPress={() => setHidden((h) => !h)}
-            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.card, alignItems: "center", justifyContent: "center" }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: t.card,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={t.ink2} strokeWidth={1.8} strokeLinecap="round">
+            <Svg
+              width={20}
+              height={20}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={t.ink2}
+              strokeWidth={1.8}
+              strokeLinecap="round"
+            >
               <Path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
               <Circle cx={12} cy={12} r={3} />
               {hidden ? <Path d="M3 3l18 18" /> : null}
@@ -73,9 +177,20 @@ export default function Inicio() {
             <Pressable
               accessibilityRole="link"
               accessibilityLabel="Perfil e ajustes"
-              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: "center", justifyContent: "center" }}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: t.accent,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <Text style={{ color: t.onAccent, fontWeight: "600", fontSize: 15 }}>{initials}</Text>
+              <Text
+                style={{ color: t.onAccent, fontWeight: "600", fontSize: 15 }}
+              >
+                {initials}
+              </Text>
             </Pressable>
           </Link>
         </View>
@@ -83,7 +198,16 @@ export default function Inicio() {
 
       {isEmpty ? (
         <Card style={{ gap: 0, paddingBottom: 8 }}>
-          <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink, paddingBottom: 4 }}>Comece por aqui</Text>
+          <Text
+            style={{
+              fontSize: 17,
+              fontWeight: "600",
+              color: t.ink,
+              paddingBottom: 4,
+            }}
+          >
+            Comece por aqui
+          </Text>
           {(
             [
               ["1", "Informe o saldo da conta corrente", "/ajustes"],
@@ -92,11 +216,34 @@ export default function Inicio() {
             ] as const
           ).map(([n, label, href]) => (
             <Link key={n} href={href} asChild>
-              <Pressable accessibilityRole="link" style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: t.line }}>
-                <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: t.accent, alignItems: "center", justifyContent: "center" }}>
-                  <Text style={{ color: t.onAccent, fontWeight: "600" }}>{n}</Text>
+              <Pressable
+                accessibilityRole="link"
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  paddingVertical: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: t.line,
+                }}
+              >
+                <View
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: t.accent,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ color: t.onAccent, fontWeight: "600" }}>
+                    {n}
+                  </Text>
                 </View>
-                <Text style={{ flex: 1, fontSize: 16, color: t.ink }}>{label}</Text>
+                <Text style={{ flex: 1, fontSize: 16, color: t.ink }}>
+                  {label}
+                </Text>
                 <Text style={{ color: t.ink3, fontSize: 18 }}>›</Text>
               </Pressable>
             </Link>
@@ -104,252 +251,238 @@ export default function Inicio() {
         </Card>
       ) : null}
 
-      <Card style={{ gap: 14 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <Text style={{ fontSize: 15, fontWeight: "600", color: t.ink2 }}>Saldo projetado · {lastDayLabel}</Text>
-          <Text style={{ fontSize: 12, color: t.ink2 }}>{updatedLabel}</Text>
-        </View>
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 44, fontWeight: "600", color: t.ink, letterSpacing: -1, fontVariant: ["tabular-nums"] }}>
-            {money(s.projectedMonthEnd)}
-          </Text>
-          <Text style={{ fontSize: 14, color: t.ink2 }}>
-            Hoje {money(s.balanceToday)} ·{" "}
-            <Text style={{ color: delta < 0 ? t.neg : t.pos, fontWeight: "600" }}>{money(delta, { signed: true })}</Text> até o fim do mês
-          </Text>
-          {benefits.length > 0 ? (
-            <Text style={{ fontSize: 13, color: t.ink2 }}>
-              Benefícios à parte: {benefits.map((a) => `${a.name} ${money(a.balance)}`).join(" · ")}
-            </Text>
-          ) : null}
-        </View>
-        <BalanceChart points={s.trajectory} />
-        <Divider />
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <Text style={{ fontSize: 15, color: t.ink2 }}>Saldo projetado · 31 dez</Text>
-          <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>{money(s.yearEnd)}</Text>
-        </View>
-      </Card>
-
-      <Card style={{ gap: 18 }}>
-        <Link href="/fluxo?tipo=despesas" asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel="Despesas do mês: ver pagas e a pagar">
-        <FlowRow
-          title="Despesas"
-          total={money(expTotal)}
-          empty={expTotal === 0}
-          a={{ label: "Pagas", value: money(s.expensesPaid), share: expTotal ? s.expensesPaid / expTotal : 0, color: t.neg }}
-          b={{ label: "A pagar", value: money(s.expensesPending), color: t.negSoft }}
-        />
-          </Pressable>
-        </Link>
-        <Divider />
-        <Link href="/fluxo?tipo=renda" asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel="Renda do mês: ver recebida e a receber">
-        <FlowRow
-          title="Renda"
-          total={money(incTotal)}
-          empty={incTotal === 0}
-          a={{ label: "Recebida", value: money(s.incomeReceived), share: incTotal ? s.incomeReceived / incTotal : 0, color: t.pos }}
-          b={{ label: "A receber", value: money(s.incomePending), color: t.posSoft }}
-        />
-          </Pressable>
-        </Link>
-      </Card>
-
-      <Link href="/orcamento" asChild>
-        <Pressable accessibilityRole="link" accessibilityLabel="Orçamento do mês: ver todas as categorias">
-          <Card style={{ gap: 14 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-              <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>
-                Orçamento do mês
-              </Text>
-              <Text style={{ fontSize: 15, color: t.accent }}>Ver tudo ›</Text>
-            </View>
-            <View style={{ gap: 8 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ fontSize: 14, color: t.ink }}>
-                  <Text style={{ fontWeight: "600" }}>{money(s.spentTotal)}</Text>
-                  <Text style={{ color: t.ink2 }}> de {money(s.limitsTotal)}</Text>
-                </Text>
-                <Text style={{ fontSize: 14, color: t.ink2 }}>{money(Math.max(s.limitsTotal - s.spentTotal, 0))} livres</Text>
-              </View>
-              <ProgressBar
-                fill={s.limitsTotal ? s.spentTotal / s.limitsTotal : 0}
-                color={s.projectedTotal > s.limitsTotal ? STATUS_COLOR.vai : STATUS_COLOR.ritmo}
-              />
-            </View>
-            {attention.length ? <Divider /> : null}
-            {attention.map((v) => (
-              <View key={v.category.id} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <Text style={{ flex: 1, fontSize: 15, color: t.ink }}>{v.category.name}</Text>
-                <Text style={{ fontSize: 14, color: t.ink2 }}>{v.limit ? Math.round((v.spent / v.limit) * 100) : 0}%</Text>
-                <View style={{ width: 96, alignItems: "center", paddingVertical: 3, borderRadius: 8, backgroundColor: STATUS_COLOR[v.status] }}>
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: v.status === "vai" ? "#1C1C1E" : "#FFFFFF" }}>
-                    {STATUS_LABEL[v.status]}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </Card>
-        </Pressable>
-      </Link>
-
+      {/* 1. Saldo previsto: um número só, pela visão de caixa (o que deve estar na conta no fim do mês). */}
       <Link href="/orcamento?lente=caixa" asChild>
-        <Pressable accessibilityRole="link" accessibilityLabel="Até o fim do mês: o que ainda sai da conta, por categoria">
-          <Card style={{ gap: 6 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-              <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>Até o fim do mês</Text>
-              <Text style={{ fontSize: 15, color: t.accent, fontWeight: "600" }}>Por categoria ›</Text>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Saldo previsto no fim do mês: ver o que ainda sai da conta"
+        >
+          <Card style={{ gap: 12 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: "600", color: t.ink2 }}>
+                Saldo previsto · {lastDayLabel}
+              </Text>
+              <Text style={{ fontSize: 12, color: t.ink2 }}>
+                {updatedLabel}
+              </Text>
             </View>
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={{ fontSize: 15, color: t.ink2 }}>Ainda sai da conta</Text>
-              <Text style={{ fontSize: 15, fontWeight: "600", color: t.ink }}>{money(cash.toLeave)}</Text>
+            <View style={{ gap: 4 }}>
+              <Text
+                style={{
+                  fontSize: 44,
+                  fontWeight: "600",
+                  color: cash.projectedBalance < 0 ? t.neg : t.ink,
+                  letterSpacing: -1,
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {money(cash.projectedBalance)}
+              </Text>
+              <Text style={{ fontSize: 14, color: t.ink2, lineHeight: 20 }}>
+                Hoje{" "}
+                <Text
+                  style={{
+                    color: cash.balanceToday < 0 ? t.neg : t.ink,
+                    fontWeight: "600",
+                  }}
+                >
+                  {money(cash.balanceToday)}
+                </Text>
+                {cash.incomePending > 0 ? (
+                  <>
+                    {" · "}
+                    <Text style={{ color: t.pos, fontWeight: "600" }}>
+                      +{money(cash.incomePending)}
+                    </Text>{" "}
+                    a receber
+                  </>
+                ) : null}
+                {" · "}
+                <Text style={{ fontWeight: "600", color: t.ink }}>
+                  −{money(cash.toLeave)}
+                </Text>{" "}
+                a sair ›
+              </Text>
+              <Text style={{ fontSize: 12, color: t.ink3, lineHeight: 16 }}>
+                Depois das faturas e contas que vencem até {lastDayLabel}. Não
+                inclui gastos que você ainda vai fazer no débito ou PIX.
+              </Text>
+              {benefits.length > 0 ? (
+                <Text style={{ fontSize: 13, color: t.ink2 }}>
+                  Benefícios à parte:{" "}
+                  {benefits
+                    .map((a) => `${a.name} ${money(a.balance)}`)
+                    .join(" · ")}
+                </Text>
+              ) : null}
             </View>
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={{ fontSize: 15, color: t.ink2 }}>Saldo previsto em {shortDate(lastDayOfMonth(cash.month))}</Text>
-              <Text style={{ fontSize: 15, fontWeight: "600", color: cash.projectedBalance < 0 ? t.neg : t.ink }}>{money(cash.projectedBalance)}</Text>
+            <Divider />
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ fontSize: 15, color: t.ink2 }}>
+                Projeção para 31 dez
+              </Text>
+              <Text
+                style={{
+                  fontSize: 17,
+                  fontWeight: "600",
+                  color: s.yearEnd < 0 ? t.neg : t.ink,
+                }}
+              >
+                {money(s.yearEnd)}
+              </Text>
             </View>
           </Card>
         </Pressable>
       </Link>
 
-      {bills.length > 0 ? (
-        <Card style={{ gap: 0, paddingBottom: 6 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingBottom: 2 }}>
-            <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>Faturas a pagar</Text>
-            <Text style={{ fontSize: 15, fontWeight: "600", color: t.ink }}>{money(bills.reduce((a, p) => a - p.amount, 0))}</Text>
-          </View>
-          <Text style={{ fontSize: 13, color: t.ink2, paddingBottom: 4 }}>
-            As compras já contam nas despesas do mês em que foram feitas; a fatura não desconta de novo.
+      {/* 2. Precisa de você: só o que pede ação. Some quando não há nada. */}
+      {todo.length > 0 ? (
+        <Card style={{ gap: 0, paddingBottom: 4 }}>
+          <Text
+            style={{
+              fontSize: 17,
+              fontWeight: "600",
+              color: t.ink,
+              paddingBottom: 6,
+            }}
+          >
+            Precisa de você
           </Text>
-          {bills.map((p, i) => (
-            <Link key={p.id} href={`/fatura/${p.id}`} asChild>
+          {todo.map((item, i) => (
+            <Link key={item.key} href={item.href as never} asChild>
               <Pressable
                 accessibilityRole="link"
-                style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: t.line }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  paddingVertical: 12,
+                  borderTopWidth: i > 0 ? 1 : 0,
+                  borderTopColor: t.line,
+                }}
               >
-                <View style={{ flex: 1 }}>
-                  <Text numberOfLines={1} style={{ fontSize: 16, color: t.ink }}>{p.description}</Text>
+                <View
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 5,
+                    backgroundColor: item.color,
+                  }}
+                />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text
+                    numberOfLines={1}
+                    style={{ fontSize: 16, color: t.ink }}
+                  >
+                    {item.title}
+                  </Text>
                   <Text style={{ fontSize: 13, color: t.ink2 }}>
-                    Vence {shortDate(p.dueDate)} · toque para ver as compras
+                    {item.detail}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: "600", color: t.ink }}>
-                  {p.estimated ? "≈ " : ""}
-                  {money(-p.amount)}
-                </Text>
+                {item.value ? (
+                  <Text
+                    style={{ fontSize: 16, fontWeight: "600", color: t.ink }}
+                  >
+                    {item.value}
+                  </Text>
+                ) : null}
+                <Text style={{ color: t.ink3, fontSize: 18 }}>›</Text>
               </Pressable>
             </Link>
           ))}
         </Card>
       ) : null}
 
-      <Card style={{ gap: 0, paddingBottom: 6 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingBottom: 6 }}>
-          <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>Próximos 7 dias</Text>
-          <Link href="/lancamentos" style={{ fontSize: 15, color: t.accent }}>
-            Ver todos
-          </Link>
-        </View>
-        {s.upcoming.length === 0 ? (
-          <Text style={{ color: t.ink2, paddingVertical: 12 }}>Nada previsto para a próxima semana.</Text>
-        ) : (
-          s.upcoming.map((p, i) => {
-            const row = (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                  paddingVertical: 12,
-                  borderBottomWidth: i < s.upcoming.length - 1 ? 1 : 0,
-                  borderBottomColor: t.line,
-                }}
-              >
-                <View style={{ width: 40, alignItems: "center" }}>
-                  <Text style={{ fontSize: 11, fontWeight: "600", color: t.ink2 }}>{shortDate(p.dueDate).split(" ")[1]?.toUpperCase()}</Text>
-                  <Text style={{ fontSize: 18, fontWeight: "600", color: t.ink }}>{dayOfMonth(p.dueDate)}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 16, color: t.ink }}>{p.description}</Text>
-                  <Text style={{ fontSize: 13, color: p.creditCardStatement ? t.accent : t.ink2, fontWeight: p.creditCardStatement ? "600" : "400" }}>
-                    {p.creditCardStatement ? "Ver composição ›" : p.amount > 0 ? "A receber" : "A pagar"}
-                  </Text>
-                </View>
-                <Text style={{ fontSize: 16, fontWeight: "600", color: p.amount > 0 ? t.pos : t.ink }}>
-                  {money(p.amount, { signed: true })}
+      {/* 3. Orçamento do mês, com atalhos para despesas e renda. */}
+      <Card style={{ gap: 14 }}>
+        <Link href="/orcamento" asChild>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Orçamento do mês: ver todas as categorias"
+            style={{ gap: 10 }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+              }}
+            >
+              <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>
+                Orçamento do mês
+              </Text>
+              <Text style={{ fontSize: 15, color: t.accent }}>Ver tudo ›</Text>
+            </View>
+            <View
+              style={{ flexDirection: "row", justifyContent: "space-between" }}
+            >
+              <Text style={{ fontSize: 14, color: t.ink }}>
+                <Text style={{ fontWeight: "600" }}>{money(s.spentTotal)}</Text>
+                <Text style={{ color: t.ink2 }}>
+                  {" "}
+                  de {money(s.limitsTotal)}
                 </Text>
-              </View>
-            );
-            return p.creditCardStatement ? (
-              <Link key={p.id} href={`/fatura/${p.id}`} asChild>
-                <Pressable accessibilityRole="link">{row}</Pressable>
-              </Link>
-            ) : (
-              <View key={p.id}>{row}</View>
-            );
-          })
-        )}
+              </Text>
+              <Text style={{ fontSize: 14, color: t.ink2 }}>
+                {s.limitsTotal
+                  ? `${Math.round((s.spentTotal / s.limitsTotal) * 100)}% · `
+                  : ""}
+                {money(Math.max(s.limitsTotal - s.spentTotal, 0))} livres
+              </Text>
+            </View>
+            <ProgressBar
+              fill={s.limitsTotal ? s.spentTotal / s.limitsTotal : 0}
+              color={
+                s.projectedTotal > s.limitsTotal
+                  ? STATUS_COLOR.vai
+                  : STATUS_COLOR.ritmo
+              }
+            />
+          </Pressable>
+        </Link>
+        <Divider />
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          {(
+            [
+              ["despesas", "Despesas", expTotal, s.expensesPending, "a pagar"],
+              ["renda", "Renda", incTotal, s.incomePending, "a receber"],
+            ] as const
+          ).map(([tipo, label, total, pending, pendingLabel]) => (
+            <Link key={tipo} href={`/fluxo?tipo=${tipo}`} asChild>
+              <Pressable accessibilityRole="link" style={{ flex: 1, gap: 2 }}>
+                <Text style={{ fontSize: 13, color: t.ink2 }}>
+                  {label} no mês ›
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 17,
+                    fontWeight: "600",
+                    color: tipo === "renda" ? t.pos : t.ink,
+                  }}
+                >
+                  {money(total)}
+                </Text>
+                <Text style={{ fontSize: 12, color: t.ink2 }}>
+                  {money(pending)} {pendingLabel}
+                </Text>
+              </Pressable>
+            </Link>
+          ))}
+        </View>
       </Card>
-
-      {top && (top.status === "estourou" || top.status === "vai" || top.status === "ritmo") ? (
-        <Card style={{ borderWidth: 1, borderColor: t.accentSoft }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <SparkIcon color={t.accent} size={18} />
-            <Text style={{ fontSize: 13, fontWeight: "600", color: t.accent, letterSpacing: 0.3 }}>ASSISTENTE</Text>
-          </View>
-          <Text style={{ fontSize: 16, lineHeight: 22, color: t.ink }}>
-            {top.category.name} está em <Text style={{ fontWeight: "600" }}>{money(top.spent)}</Text> de{" "}
-            {money(top.limit)}. No ritmo atual, fecha o mês em <Text style={{ fontWeight: "600" }}>{money(top.projected)}</Text>.
-          </Text>
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <Link href={`/categoria/${top.category.id}`} asChild>
-              <PrimaryButton label="Ver transações" />
-            </Link>
-            <Link href="/limites" asChild>
-              <PrimaryButton label="Ajustar limite" soft />
-            </Link>
-          </View>
-        </Card>
-      ) : null}
     </Screen>
   );
 }
-
-function FlowRow({
-  title,
-  total,
-  a,
-  b,
-  empty,
-}: {
-  title: string;
-  total: string;
-  /** Sem valores no mês: mostra só o trilho cinza em vez de uma barra cheia. */
-  empty?: boolean;
-  a: { label: string; value: string; share: number; color: string };
-  b: { label: string; value: string; color: string };
-}) {
-  const t = useTheme();
-  return (
-    <View style={{ gap: 10 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
-        <Text style={{ fontSize: 17, fontWeight: "600", color: t.ink }}>{title}</Text>
-        <Text style={{ fontSize: 15, color: t.ink2 }}>{total} no mês ›</Text>
-      </View>
-      <ProgressBar segments={empty ? [] : [{ value: a.share, color: a.color }, { value: 1 - a.share, color: b.color }]} />
-      <View style={{ flexDirection: "row", justifyContent: "space-between", flexWrap: "wrap", rowGap: 4, columnGap: 12 }}>
-        {[a, b].map((x) => (
-          <View key={x.label} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: x.color }} />
-            <Text style={{ fontSize: 14, color: t.ink }}>
-              {x.label} <Text style={{ fontWeight: "600" }}>{x.value}</Text>
-            </Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
