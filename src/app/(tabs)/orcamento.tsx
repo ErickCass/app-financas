@@ -68,13 +68,9 @@ export default function Orcamento() {
         : projected >= limit * 0.85
           ? "ritmo"
           : "sobra";
-  const attention = view.filter(
-    (v) => v.status === "estourou" || v.status === "vai",
-  );
   // Categorias sem limite só aparecem como linha se tiveram gasto; as demais viram um lembrete.
   const rows = view.filter((v) => v.status !== "semlimite" || v.spent > 0);
   const idle = view.filter((v) => v.status === "semlimite" && v.spent === 0);
-  const willOverrun = view.filter((v) => v.status === "vai");
 
   return (
     <Screen
@@ -297,96 +293,6 @@ export default function Orcamento() {
             </Card>
           ) : null}
 
-          {attention.length ? (
-            <Card
-              style={{
-                gap: 0,
-                borderWidth: 1.5,
-                borderColor: "#F2DA8A",
-                paddingBottom: 8,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 17,
-                  fontWeight: "600",
-                  color: t.ink,
-                  paddingBottom: 4,
-                }}
-              >
-                {attentionTitle(
-                  attention.length - willOverrun.length,
-                  willOverrun.length,
-                )}
-              </Text>
-              {attention.map((v, i) => (
-                <Link
-                  key={v.category.id}
-                  href={`/categoria/${v.category.id}`}
-                  asChild
-                >
-                  <Pressable
-                    accessibilityRole="link"
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 12,
-                      paddingVertical: 12,
-                      borderBottomWidth: i < attention.length - 1 ? 1 : 0,
-                      borderBottomColor: t.line,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 5,
-                        backgroundColor: STATUS_COLOR[v.status],
-                      }}
-                    />
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          flexShrink: 1,
-                          fontSize: 16,
-                          fontWeight: "600",
-                          color: t.ink,
-                        }}
-                      >
-                        {v.category.name}
-                      </Text>
-                      <Text
-                        numberOfLines={1}
-                        style={{ flexShrink: 0, fontSize: 13, color: t.ink2 }}
-                      >
-                        {v.status === "estourou"
-                          ? `${formatBRL(v.spent - v.limit)} acima do limite`
-                          : `Previsto ${formatBRL(v.projected, { noCents: true })} para ${formatBRL(v.limit, { noCents: true })}`}
-                      </Text>
-                    </View>
-                    {v.status === "vai" ? (
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text
-                          style={{
-                            fontSize: 16,
-                            fontWeight: "600",
-                            color: t.accent,
-                          }}
-                        >
-                          {formatBRL(v.dailyAllowance, { noCents: true })}/dia
-                        </Text>
-                        <Text style={{ fontSize: 12, color: t.ink2 }}>
-                          para fechar no limite
-                        </Text>
-                      </View>
-                    ) : null}
-                  </Pressable>
-                </Link>
-              ))}
-            </Card>
-          ) : null}
-
           <Link href="/plano" asChild>
             <Pressable
               accessibilityRole="link"
@@ -531,6 +437,19 @@ export default function Orcamento() {
                         marker={v.expectedShareToday}
                       />
                     )}
+                    {v.status === "estourou" ? (
+                      <Text
+                        style={{ fontSize: 12, color: STATUS_COLOR.estourou }}
+                      >
+                        {formatBRL(v.spent - v.limit, { noCents: true })} acima
+                        do limite
+                      </Text>
+                    ) : v.status === "vai" ? (
+                      <Text style={{ fontSize: 12, color: t.ink2 }}>
+                        Até {formatBRL(v.dailyAllowance, { noCents: true })}/dia
+                        para fechar no limite
+                      </Text>
+                    ) : null}
                   </View>
                   <Text
                     numberOfLines={1}
@@ -602,18 +521,4 @@ export default function Orcamento() {
       )}
     </Screen>
   );
-}
-
-/** "1 categoria estourou e 2 vão estourar" */
-function attentionTitle(over: number, will: number): string {
-  const n = (k: number) => `${k} ${k === 1 ? "categoria" : "categorias"}`;
-  const overText = over
-    ? `${n(over)} ${over === 1 ? "estourou" : "estouraram"}`
-    : "";
-  const willText = will
-    ? `${will === 1 ? "vai" : "vão"} estourar no ritmo atual`
-    : "";
-  if (over && will) return `${overText} e ${will} ${willText}`;
-  if (over) return overText;
-  return `${n(will)} ${willText}`;
 }
