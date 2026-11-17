@@ -9,6 +9,7 @@ import { Card, ProgressBar, Screen, SectionTitle } from "@/ui/components";
 import { ChevronRight } from "@/ui/icons";
 import { AccountChips } from "@/ui/AccountChips";
 import { CashOutPanel } from "@/ui/CashOutPanel";
+import { FixedBills } from "@/ui/FixedBills";
 import { STATUS_COLOR, STATUS_LABEL, useTheme } from "@/ui/theme";
 
 export default function Orcamento() {
@@ -21,8 +22,10 @@ export default function Orcamento() {
   );
   // A aba fica montada: quando o card da Início pede a lente de caixa, troca para ela.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (params.lente === "caixa" || params.lente === "gasto") setLens(params.lente);
+    if (params.lente === "caixa" || params.lente === "gasto") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLens(params.lente);
+    }
   }, [params.lente]);
   // Filtro por conta ou cartão: só aparecem as que tiveram lançamento no mês.
   const [accountId, setAccountId] = useState<string | undefined>(undefined);
@@ -132,7 +135,11 @@ export default function Orcamento() {
         ))}
       </View>
 
-      <AccountChips accounts={usedAccounts} value={accountId} onChange={setAccountId} />
+      <AccountChips
+        accounts={usedAccounts}
+        value={accountId}
+        onChange={setAccountId}
+      />
 
       {lens === "caixa" ? (
         <CashOutPanel accountId={accountId} accountName={accountName} />
@@ -577,69 +584,7 @@ export default function Orcamento() {
 
           {fixed.length > 0 ? (
             <>
-              <SectionTitle>Contas fixas</SectionTitle>
-              <Card style={{ gap: 0, paddingVertical: 4 }}>
-                {sorted(fixed).map((v, i) => (
-                  <Link
-                    key={v.category.id}
-                    href={`/categoria/${v.category.id}`}
-                    asChild
-                  >
-                    <Pressable
-                      accessibilityRole="link"
-                      accessibilityLabel={`${v.category.name}: ${formatBRL(v.spent)} no mês. Ver transações`}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 12,
-                        paddingVertical: 12,
-                        borderBottomWidth: i < fixed.length - 1 ? 1 : 0,
-                        borderBottomColor: t.line,
-                      }}
-                    >
-                      <View
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: 5,
-                          backgroundColor: v.category.color,
-                        }}
-                      />
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          numberOfLines={1}
-                          style={{
-                            fontSize: 16,
-                            fontWeight: "600",
-                            color: t.ink,
-                          }}
-                        >
-                          {v.category.name}
-                        </Text>
-                        <Text style={{ fontSize: 13, color: t.ink2 }}>
-                          {v.transactions.length}{" "}
-                          {v.transactions.length === 1
-                            ? "lançamento"
-                            : "lançamentos"}
-                          {v.limit
-                            ? ` · previsto ${formatBRL(v.limit, { noCents: true })}`
-                            : ""}
-                        </Text>
-                      </View>
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          fontWeight: "600",
-                          color: v.status === "estourou" ? "#B42318" : t.ink,
-                        }}
-                      >
-                        {formatBRL(v.spent)}
-                      </Text>
-                      <ChevronRight color={t.ink3} />
-                    </Pressable>
-                  </Link>
-                ))}
-              </Card>
+              <FixedBills fixed={fixed} />
               <Text
                 style={{
                   fontSize: 13,
@@ -648,8 +593,8 @@ export default function Orcamento() {
                   paddingHorizontal: 4,
                 }}
               >
-                Contas fixas (condomínio, escola) não entram no ritmo dos gastos
-                variáveis.
+                Conta paga a até 10% do previsto conta como paga certinho.
+                Contas fixas não entram no ritmo dos gastos variáveis.
               </Text>
             </>
           ) : null}

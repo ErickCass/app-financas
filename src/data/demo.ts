@@ -24,6 +24,8 @@ export const categories: Category[] = [
   { id: "moradia", name: "Moradia", kind: "fixed", color: "#0E4A5C" },
   { id: "educacao", name: "Educação", kind: "fixed", color: "#0E4A5C" },
   { id: "saude", name: "Saúde", kind: "fixed", color: "#0E4A5C" },
+  { id: "celular", name: "Celular", kind: "fixed", color: "#B4236A" },
+  { id: "seguro", name: "Seguro do carro", kind: "fixed", color: "#4D8A9A" },
   { id: "renda", name: "Renda", kind: "income", color: "#1E7A46" },
 ];
 
@@ -35,6 +37,12 @@ export const budgets: Budget[] = [
   ["assinaturas", 22_000],
   ["lazer", 80_000],
   ["casa", 90_000],
+  // Contas fixas: valor previsto do mês (um caso de cada situação na tela de Orçamento).
+  ["moradia", 160_000],
+  ["educacao", 108_000],
+  ["saude", 34_000],
+  ["celular", 10_000],
+  ["seguro", 25_000],
 ].map(([categoryId, limit]) => ({ categoryId: categoryId as string, month: "2026-11", limit: limit as number }));
 
 /** Curva acumulada "linear com início lento" e "tudo no começo" para a demo. */
@@ -108,6 +116,8 @@ export const transactions: Transaction[] = [
   // Contas fixas já pagas
   t("2026-11-03", "Internet Vivo", -12_990, "moradia", "itau"),
   t("2026-11-06", "Energia Enel", -28_740, "moradia", "itau"),
+  t("2026-11-05", "Claro celular", -12_490, "celular", "itau"),
+  t("2026-11-07", "Porto Seguro", -25_000, "seguro", "itau"),
   // Compras de outubro que entram na fatura Visa de novembro (fecha dia 5)
   t("2026-10-31", "Pão de Açúcar", -38_922, "mercado"),
   t("2026-10-28", "iFood", -7_826, "restaurantes"),

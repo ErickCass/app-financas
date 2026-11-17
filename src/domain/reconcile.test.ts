@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Planned, Transaction } from "./types";
-import { fixedRemaining, matchPlannedToTransactions } from "./reconcile";
+import { fixedRemaining, matchPlannedToTransactions, fixedStatus } from "./reconcile";
 
 const planned = (p: Partial<Planned> & { id: string; amount: number }): Planned => ({
   accountId: "itau",
@@ -71,4 +71,13 @@ describe("conta fixa quitada por aproximação", () => {
     expect(fixedRemaining(192_000, 0, 64_000)).toBe(128_000);
     expect(fixedRemaining(0, 50_000, 0)).toBe(0);
   });
+});
+
+describe("situação da conta fixa", () => {
+  it("nada pago: a pagar", () => expect(fixedStatus(400_000, 0)).toBe("a_pagar"));
+  it("centavos acima do previsto: paga, sem alarme", () => expect(fixedStatus(27_000, 27_010)).toBe("paga"));
+  it("um pouco abaixo (condomínio aproximado): paga", () => expect(fixedStatus(120_000, 119_172)).toBe("paga"));
+  it("mais de 10% acima: acima do previsto", () => expect(fixedStatus(10_000, 12_149)).toBe("acima"));
+  it("1 de 3 mensalidades: parcial", () => expect(fixedStatus(192_000, 64_000)).toBe("parcial"));
+  it("sem valor previsto e com pagamento: paga", () => expect(fixedStatus(0, 5_000)).toBe("paga"));
 });

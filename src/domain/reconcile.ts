@@ -78,3 +78,17 @@ export function fixedRemaining(expected: number, spent: number, alreadyPlanned: 
   if (spent + alreadyPlanned >= expected * (1 - SETTLE_TOLERANCE)) return 0;
   return Math.max(expected - spent - alreadyPlanned, 0);
 }
+
+export type FixedStatus = "a_pagar" | "parcial" | "paga" | "acima";
+
+/**
+ * Situação de uma conta fixa no mês, com a mesma tolerância das contas aproximadas:
+ * pago a até 10% do previsto (para menos ou para mais) conta como pago certinho.
+ */
+export function fixedStatus(expected: number, spent: number): FixedStatus {
+  if (spent <= 0) return "a_pagar";
+  if (expected <= 0) return "paga";
+  if (spent > expected * (1 + SETTLE_TOLERANCE)) return "acima";
+  if (spent >= expected * (1 - SETTLE_TOLERANCE)) return "paga";
+  return "parcial";
+}
