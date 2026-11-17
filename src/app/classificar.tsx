@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Link } from "expo-router";
 import { useFinance } from "@/data/store";
+import { useUncategorized } from "@/data/selectors";
 import { formatBRL } from "@/domain/money";
 import { shortDate } from "@/domain/dates";
 import type { Transaction } from "@/domain/types";
@@ -32,6 +33,7 @@ interface Group {
 export default function Classificar() {
   const t = useTheme();
   const f = useFinance();
+  const unc = useUncategorized();
   const [open, setOpen] = useState<string | null>(null);
   const [done, setDone] = useState(0);
   const [last, setLast] = useState<{
@@ -223,7 +225,7 @@ export default function Classificar() {
               ? done > 0
                 ? `Pronto! ${done} lançamentos classificados.`
                 : "Tudo classificado."
-              : `${pending} lançamento${pending > 1 ? "s" : ""} em ${groups.length} grupo${groups.length > 1 ? "s" : ""}. Escolha uma vez por loja ou pessoa: o app aplica a todos iguais e lembra nas próximas importações.`}
+              : `${pending} lançamento${pending > 1 ? "s" : ""} em ${groups.length} grupo${groups.length > 1 ? "s" : ""}, somando ${formatBRL(unc.out)} em saídas${unc.in > 0 ? ` e ${formatBRL(unc.in)} em entradas` : ""}. Escolha uma vez por loja ou pessoa: o app aplica a todos iguais e lembra nas próximas importações.`}
           </Text>
         </View>
 

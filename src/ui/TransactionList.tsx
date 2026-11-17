@@ -43,7 +43,7 @@ export function TransactionList({
   return (
     <>
       {groups.map(([date, items]) => (
-        <View key={date ?? "todos"} style={{ gap: 8 }}>
+        <View key={date ?? "todos"} style={{ gap: 6 }}>
           {date ? (
             <Text
               style={{
@@ -92,16 +92,20 @@ function Row({
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
-        paddingVertical: 12,
+        // Linhas compactas: menos rolagem, mesma informação.
+        paddingVertical: 8,
         borderBottomWidth: last ? 0 : 1,
         borderBottomColor: t.line,
       }}
     >
-      {account ? <AccountMark account={account} /> : null}
+      {account ? <AccountMark account={account} size={24} /> : null}
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ fontSize: 16, color: t.ink }}>{r.title}</Text>
+        <Text numberOfLines={1} style={{ fontSize: 15, color: t.ink }}>
+          {r.title}
+        </Text>
         <Text
-          style={{ fontSize: 13, color: r.href && pending ? t.accent : t.ink2 }}
+          numberOfLines={1}
+          style={{ fontSize: 12, color: r.href && pending ? t.accent : t.ink2 }}
         >
           {showDate ? `${shortDate(r.date)} · ` : ""}
           {r.subtitle}
@@ -110,7 +114,7 @@ function Row({
       <View style={{ alignItems: "flex-end", gap: 2 }}>
         <Text
           style={{
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: "600",
             color: r.amount > 0 ? t.pos : t.ink,
           }}
@@ -130,11 +134,7 @@ function Row({
               {r.status === "a_pagar" ? "A pagar" : "A receber"}
             </Text>
           </View>
-        ) : (
-          <Text style={{ fontSize: 12, color: t.ink2 }}>
-            {r.status === "pago" ? "Pago" : "Recebido"}
-          </Text>
-        )}
+        ) : null}
       </View>
     </View>
   );

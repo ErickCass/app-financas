@@ -5,6 +5,7 @@ import { useFinance } from "@/data/store";
 import { formatBRL } from "@/domain/money";
 import { addMonths, monthLabel, monthOf } from "@/domain/dates";
 import { buildTxRows, totals } from "@/domain/txList";
+import { useUncategorized } from "@/data/selectors";
 import { Card, Screen } from "@/ui/components";
 import { AccountChips } from "@/ui/AccountChips";
 import { TransactionList } from "@/ui/TransactionList";
@@ -35,6 +36,8 @@ export default function Lancamentos() {
     undefined,
   );
   const [picking, setPicking] = useState(false);
+  // Menu do "+": lançamento, conta a pagar ou renda a receber.
+  const [adding, setAdding] = useState(false);
   const [catQuery, setCatQuery] = useState("");
   // Mês mostrado: compras de fatura entram na data da compra, então é comum
   // precisar voltar um ou dois meses para ver o que veio de uma fatura.
@@ -102,9 +105,8 @@ export default function Lancamentos() {
     filter !== "todos" ||
     query.trim() !== "";
 
-  const uncategorized = f.transactions.filter(
-    (tx) => !tx.categoryId && !tx.isCardPayment,
-  ).length;
+  const unc = useUncategorized();
+  const uncategorized = unc.count;
 
   return (
     <Screen
@@ -131,34 +133,67 @@ export default function Lancamentos() {
               </Text>
             </Pressable>
           </Link>
-          <Link href="/novo" asChild>
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel="Novo lançamento"
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Adicionar"
+            accessibilityState={{ expanded: adding }}
+            onPress={() => setAdding((v) => !v)}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: t.accent,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: t.accent,
-                alignItems: "center",
-                justifyContent: "center",
+                color: t.onAccent,
+                fontSize: 26,
+                lineHeight: 28,
+                fontWeight: "400",
               }}
             >
-              <Text
-                style={{
-                  color: t.onAccent,
-                  fontSize: 26,
-                  lineHeight: 28,
-                  fontWeight: "400",
-                }}
-              >
-                +
-              </Text>
-            </Pressable>
-          </Link>
+              {adding ? "×" : "+"}
+            </Text>
+          </Pressable>
         </View>
       }
     >
+      {adding ? (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {(
+            [
+              ["/novo", "Lançamento"],
+              ["/previsto?tipo=pagar", "Conta a pagar"],
+              ["/previsto?tipo=receber", "Renda a receber"],
+            ] as const
+          ).map(([href, label]) => (
+            <Link key={href} href={href} asChild>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => setAdding(false)}
+                style={{
+                  flex: 1,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: t.accentSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{ fontSize: 14, fontWeight: "600", color: t.accent }}
+                >
+                  + {label}
+                </Text>
+              </Pressable>
+            </Link>
+          ))}
+        </View>
+      ) : null}
+
       <TextInput
         value={query}
         onChangeText={setQuery}
@@ -423,9 +458,10 @@ export default function Lancamentos() {
               <Text
                 style={{ fontSize: 16, fontWeight: "600", color: t.accent }}
               >
-                {uncategorized} sem categoria
+                {uncategorized} sem categoria · {formatBRL(unc.out)}
               </Text>
               <Text style={{ fontSize: 13, color: t.ink2 }}>
+                {unc.in > 0 ? `+${formatBRL(unc.in)} em entradas · ` : ""}
                 Classifique por loja de uma vez
               </Text>
             </View>
@@ -436,81 +472,60 @@ export default function Lancamentos() {
         </Link>
       ) : null}
 
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        {(
-          [
-            ["pagar", "+ Conta a pagar"],
-            ["receber", "+ Renda a receber"],
-          ] as const
-        ).map(([tipo, label]) => (
-          <Link key={tipo} href={`/previsto?tipo=${tipo}`} asChild>
-            <Pressable
-              accessibilityRole="link"
+      {/* Resumo numa linha só: o que interessa é a lista logo abaixo. */}
+      <Card
+        style={{
+          flexDirection: "row",
+          paddingVertical: 10,
+          paddingHorizontal: 14,
+          gap: 12,
+        }}
+      >
+        {(filter === "realizados"
+          ? [
+              ["Saiu", sum.out, t.ink],
+              ["Entrou", sum.in, t.pos],
+            ]
+          : [
+              [
+                `A pagar${filtered ? "" : " no mês"}`,
+                -pendingOut.reduce((a, r) => a + r.amount, 0),
+                t.neg,
+              ],
+              [
+                `A receber${filtered ? "" : " no mês"}`,
+                pendingIn.reduce((a, r) => a + r.amount, 0),
+                t.pos,
+              ],
+            ]
+        ).map(([label, value, color], i) => (
+          <View
+            key={String(label)}
+            style={{
+              flex: 1,
+              gap: 2,
+              borderLeftWidth: i ? 1 : 0,
+              borderLeftColor: t.line,
+              paddingLeft: i ? 12 : 0,
+            }}
+          >
+            <Text numberOfLines={1} style={{ fontSize: 12, color: t.ink2 }}>
+              {label as string}
+            </Text>
+            <Text
+              numberOfLines={1}
               style={{
-                flex: 1,
-                height: 40,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: t.line,
-                backgroundColor: t.card,
-                alignItems: "center",
-                justifyContent: "center",
+                fontSize: 17,
+                fontWeight: "700",
+                color: color as string,
+                fontVariant: ["tabular-nums"],
               }}
             >
-              <Text
-                style={{ fontSize: 14, fontWeight: "600", color: t.accent }}
-              >
-                {label}
-              </Text>
-            </Pressable>
-          </Link>
+              {formatBRL(value as number, { noCents: true })}
+            </Text>
+          </View>
         ))}
-      </View>
-
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        {filter === "realizados" ? (
-          <>
-            <Card style={{ flex: 1, padding: 14, gap: 4 }}>
-              <Text style={{ fontSize: 13, color: t.ink2 }}>Saiu</Text>
-              <Text style={{ fontSize: 20, fontWeight: "600", color: t.ink }}>
-                {formatBRL(sum.out)}
-              </Text>
-            </Card>
-            <Card style={{ flex: 1, padding: 14, gap: 4 }}>
-              <Text style={{ fontSize: 13, color: t.ink2 }}>Entrou</Text>
-              <Text style={{ fontSize: 20, fontWeight: "600", color: t.pos }}>
-                {formatBRL(sum.in)}
-              </Text>
-            </Card>
-          </>
-        ) : (
-          <>
-            <Card style={{ flex: 1, padding: 14, gap: 4 }}>
-              <Text style={{ fontSize: 13, color: t.ink2 }}>
-                A pagar{filtered ? " (filtro)" : " no mês"}
-              </Text>
-              <Text style={{ fontSize: 20, fontWeight: "600", color: t.neg }}>
-                {formatBRL(-pendingOut.reduce((a, r) => a + r.amount, 0))}
-              </Text>
-              <Text style={{ fontSize: 13, color: t.ink2 }}>
-                {pendingOut.length} lançamento
-                {pendingOut.length === 1 ? "" : "s"}
-              </Text>
-            </Card>
-            <Card style={{ flex: 1, padding: 14, gap: 4 }}>
-              <Text style={{ fontSize: 13, color: t.ink2 }}>
-                A receber{filtered ? " (filtro)" : " no mês"}
-              </Text>
-              <Text style={{ fontSize: 20, fontWeight: "600", color: t.pos }}>
-                {formatBRL(pendingIn.reduce((a, r) => a + r.amount, 0))}
-              </Text>
-              <Text style={{ fontSize: 13, color: t.ink2 }}>
-                {pendingIn.length} lançamento{pendingIn.length === 1 ? "" : "s"}
-              </Text>
-            </Card>
-          </>
-        )}
-      </View>
+      </Card>
 
       {filtered ? (
         <View

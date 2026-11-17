@@ -77,3 +77,16 @@ export function useCashOut(accountId?: string) {
     [f.today, f.accounts, f.transactions, f.planned, f.budgets, f.categories, accountId],
   );
 }
+
+/** Lançamentos sem categoria: quantos e quanto somam (saídas e entradas separadas). */
+export function useUncategorized() {
+  const f = useFinance();
+  return useMemo(() => {
+    const list = f.transactions.filter((tx) => !tx.categoryId && !tx.isCardPayment);
+    return {
+      count: list.length,
+      out: list.reduce((a, tx) => (tx.amount < 0 ? a - tx.amount : a), 0),
+      in: list.reduce((a, tx) => (tx.amount > 0 ? a + tx.amount : a), 0),
+    };
+  }, [f.transactions]);
+}

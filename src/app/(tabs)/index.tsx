@@ -4,7 +4,7 @@ import { Link } from "expo-router";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useAuth } from "@/data/auth";
 import { useFinance } from "@/data/store";
-import { useBudgetView, useCashOut, useMonthSummary } from "@/data/selectors";
+import { useBudgetView, useCashOut, useMonthSummary, useUncategorized } from "@/data/selectors";
 import { formatBRL } from "@/domain/money";
 import { dayOfMonth, lastDayOfMonth, shortDate } from "@/domain/dates";
 import { Card, Divider, ProgressBar, Screen } from "@/ui/components";
@@ -60,9 +60,8 @@ export default function Inicio() {
     .slice(0, 3);
   // Vale-alimentação e afins: saldo próprio, mostrado à parte do caixa.
   const benefits = f.accounts.filter((a) => a.kind === "benefit");
-  const uncategorized = f.transactions.filter(
-    (tx) => !tx.categoryId && !tx.isCardPayment,
-  ).length;
+  const unc = useUncategorized();
+  const uncategorized = unc.count;
   // O que pede ação, nesta ordem: categorias estourando, contas que vencem em 7 dias, lançamentos sem categoria.
   const todo: {
     key: string;
@@ -100,7 +99,8 @@ export default function Inicio() {
           {
             key: "classificar",
             title: `${uncategorized} sem categoria`,
-            detail: "Classifique por loja de uma vez",
+            detail: unc.in > 0 ? `+${money(unc.in, { noCents: true })} em entradas · classifique por loja` : "Classifique por loja de uma vez",
+            value: money(unc.out, { noCents: true }),
             href: "/classificar",
             color: t.ink3,
           },
