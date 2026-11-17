@@ -4,7 +4,12 @@ import { Link } from "expo-router";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useAuth } from "@/data/auth";
 import { useFinance } from "@/data/store";
-import { useBudgetView, useCashOut, useMonthSummary, useUncategorized } from "@/data/selectors";
+import {
+  useBudgetView,
+  useCashOut,
+  useMonthSummary,
+  useUncategorized,
+} from "@/data/selectors";
 import { formatBRL } from "@/domain/money";
 import { dayOfMonth, lastDayOfMonth, shortDate } from "@/domain/dates";
 import { Card, Divider, ProgressBar, Screen } from "@/ui/components";
@@ -99,7 +104,10 @@ export default function Inicio() {
           {
             key: "classificar",
             title: `${uncategorized} sem categoria`,
-            detail: unc.in > 0 ? `+${money(unc.in, { noCents: true })} em entradas · classifique por loja` : "Classifique por loja de uma vez",
+            detail:
+              unc.in > 0
+                ? `+${money(unc.in, { noCents: true })} em entradas · classifique por loja`
+                : "Classifique por loja de uma vez",
             value: money(unc.out, { noCents: true }),
             href: "/classificar",
             color: t.ink3,
@@ -426,22 +434,32 @@ export default function Inicio() {
               </Text>
               <Text style={{ fontSize: 15, color: t.accent }}>Ver tudo ›</Text>
             </View>
+            {/* Valores sem centavos e % à direita: cabe numa linha mesmo com orçamento de cinco dígitos. */}
             <View
-              style={{ flexDirection: "row", justifyContent: "space-between" }}
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                gap: 8,
+              }}
             >
-              <Text style={{ fontSize: 14, color: t.ink }}>
-                <Text style={{ fontWeight: "600" }}>{money(s.spentTotal)}</Text>
+              <Text
+                numberOfLines={1}
+                style={{ flexShrink: 1, fontSize: 14, color: t.ink }}
+              >
+                <Text style={{ fontWeight: "600" }}>
+                  {money(s.spentTotal, { noCents: true })}
+                </Text>
                 <Text style={{ color: t.ink2 }}>
                   {" "}
-                  de {money(s.limitsTotal)}
+                  de {money(s.limitsTotal, { noCents: true })}
                 </Text>
               </Text>
-              <Text style={{ fontSize: 14, color: t.ink2 }}>
-                {s.limitsTotal
-                  ? `${Math.round((s.spentTotal / s.limitsTotal) * 100)}% · `
-                  : ""}
-                {money(Math.max(s.limitsTotal - s.spentTotal, 0))} livres
-              </Text>
+              {s.limitsTotal ? (
+                <Text style={{ fontSize: 14, fontWeight: "700", color: t.ink }}>
+                  {Math.round((s.spentTotal / s.limitsTotal) * 100)}%
+                </Text>
+              ) : null}
             </View>
             <ProgressBar
               fill={s.limitsTotal ? s.spentTotal / s.limitsTotal : 0}
@@ -451,6 +469,12 @@ export default function Inicio() {
                   : STATUS_COLOR.ritmo
               }
             />
+            <Text style={{ fontSize: 13, color: t.ink2 }}>
+              {money(Math.max(s.limitsTotal - s.spentTotal, 0), {
+                noCents: true,
+              })}{" "}
+              livres no orçamento
+            </Text>
           </Pressable>
         </Link>
         <Divider />
