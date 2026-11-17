@@ -118,9 +118,9 @@ export default function Ajustes() {
           <SectionTitle>Segurança</SectionTitle>
           <Card style={{ gap: 8 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Text style={{ flex: 1, fontSize: 16, color: t.ink }}>Desbloquear com {lock.label}</Text>
+              <Text style={{ flex: 1, fontSize: 16, color: t.ink }}>Entrar com {lock.label}</Text>
               <Switch
-                accessibilityLabel={`Desbloquear com ${lock.label}`}
+                accessibilityLabel={`Entrar com ${lock.label}`}
                 value={lock.enabled}
                 onValueChange={(on) => {
                   setLockError(null);
@@ -129,8 +129,7 @@ export default function Ajustes() {
               />
             </View>
             <Text style={{ fontSize: 13, color: t.ink2, lineHeight: 18 }}>
-              O Finia pede {lock.label} ao abrir e ao voltar depois de um minuto fora, e esconde os valores na tela de
-              alternar apps.
+              Ao abrir o Finia, você entra com {lock.label}, como num app de banco. Voltar ao app depois de um tempo não pede de novo.
             </Text>
             {lockError ? <Text style={{ fontSize: 13, color: t.neg }}>{lockError}</Text> : null}
           </Card>
