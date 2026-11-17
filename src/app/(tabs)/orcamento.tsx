@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Link, useLocalSearchParams } from "expo-router";
 import { useFinance } from "@/data/store";
 import { useBudgetView } from "@/data/selectors";
@@ -7,7 +7,7 @@ import { formatBRL } from "@/domain/money";
 import { dayOfMonth, daysInMonth, monthLabel, monthOf } from "@/domain/dates";
 import { Card, ProgressBar, Screen, SectionTitle } from "@/ui/components";
 import { ChevronRight } from "@/ui/icons";
-import { AccountMark } from "@/ui/AccountMark";
+import { AccountChips } from "@/ui/AccountChips";
 import { CashOutPanel } from "@/ui/CashOutPanel";
 import { STATUS_COLOR, STATUS_LABEL, useTheme } from "@/ui/theme";
 
@@ -132,49 +132,7 @@ export default function Orcamento() {
         ))}
       </View>
 
-      {usedAccounts.length > 1 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingHorizontal: 2 }}
-        >
-          {[undefined, ...usedAccounts].map((a) => {
-            const on = (a?.id ?? undefined) === accountId;
-            return (
-              <Pressable
-                key={a?.id ?? "todas"}
-                accessibilityRole="button"
-                accessibilityState={{ selected: on }}
-                onPress={() => setAccountId(a?.id)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  height: 34,
-                  paddingHorizontal: a ? 6 : 14,
-                  paddingRight: 12,
-                  borderRadius: 17,
-                  backgroundColor: on ? t.accent : t.card,
-                  borderWidth: 1,
-                  borderColor: on ? t.accent : t.line,
-                }}
-              >
-                {a ? <AccountMark account={a} size={22} /> : null}
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "600",
-                    color: on ? t.onAccent : t.ink,
-                  }}
-                  numberOfLines={1}
-                >
-                  {a ? a.name : "Todas as contas"}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      ) : null}
+      <AccountChips accounts={usedAccounts} value={accountId} onChange={setAccountId} />
 
       {lens === "caixa" ? (
         <CashOutPanel accountId={accountId} accountName={accountName} />
