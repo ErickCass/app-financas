@@ -6,7 +6,7 @@
  * pede de novo: só a abertura do app.
  *
  * A sessão do Supabase continua guardada no aparelho; a biometria é o que libera a
- * entrada nela. "Entrar com outra conta" encerra a sessão e volta ao login por
+ * entrada nela. "Entrar de outro jeito" encerra a sessão e volta ao login por
  * código. Se a biometria falhar, o iOS oferece o código do aparelho. Não existe na
  * web (a biblioteca é só nativa).
  */
@@ -32,6 +32,7 @@ import * as LocalAuthentication from "expo-local-authentication";
 import { router } from "expo-router";
 import { useAuth } from "@/data/auth";
 import { useTheme } from "./theme";
+import { AppIcon } from "./AppIcon";
 
 const KEY = "finia.biometricLock";
 
@@ -190,6 +191,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
         >
           {ready ? (
             <>
+              <AppIcon size={72} />
               <Text style={{ fontSize: 34, fontWeight: "700", color: t.ink }}>
                 Finia
               </Text>
@@ -236,7 +238,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
                 style={{ padding: 12 }}
               >
                 <Text style={{ color: t.accent, fontSize: 15 }}>
-                  Entrar com outra conta
+                  Entrar de outro jeito
                 </Text>
               </Pressable>
             </>

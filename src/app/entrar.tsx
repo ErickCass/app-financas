@@ -7,6 +7,7 @@ import { translateAuthError, useAuth } from "@/data/auth";
 import { readRedirectError, type Provider } from "@/data/oauth";
 import { Screen } from "@/ui/components";
 import { useTheme } from "@/ui/theme";
+import { AppIcon } from "@/ui/AppIcon";
 
 export default function Entrar() {
   const t = useTheme();
@@ -52,9 +53,7 @@ export default function Entrar() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Screen refreshable={false}>
         <View style={{ gap: 8, paddingTop: 40, paddingBottom: 12 }}>
-          <View style={{ width: 56, height: 56, borderRadius: 14, backgroundColor: t.accent, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: t.onAccent, fontSize: 28, fontWeight: "700" }}>F</Text>
-          </View>
+          <AppIcon size={56} />
           <Text accessibilityRole="header" style={{ fontSize: 34, fontWeight: "700", color: t.ink, letterSpacing: -0.5 }}>
             Entrar
           </Text>
