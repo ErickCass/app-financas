@@ -35,6 +35,8 @@ import { useTheme } from "./theme";
 import { AppIcon } from "./AppIcon";
 
 const KEY = "finia.biometricLock";
+/** Já perguntamos se a pessoa quer entrar com Face ID? Pergunta uma vez só. */
+const OFFER_KEY = "finia.faceOfferAsked";
 
 interface FaceLogin {
   /** O aparelho tem biometria cadastrada (só no app nativo). */
@@ -90,6 +92,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
   // Só a abertura do app pede a entrada; depois de entrar, fica liberado até o app ser fechado.
   const [mustEnter, setMustEnter] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [offerAsked, setOfferAsked] = useState(true);
   const prompting = useRef(false);
 
   useEffect(() => {
@@ -102,6 +105,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
           LocalAuthentication.supportedAuthenticationTypesAsync(),
           AsyncStorage.getItem(KEY),
         ]);
+        setOfferAsked((await AsyncStorage.getItem(OFFER_KEY)) === "1");
         const ok = hardware && enrolled;
         setAvailable(ok);
         setLabel(
@@ -164,6 +168,18 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
     },
     [label],
   );
+
+  // Depois de entrar no iPhone pela primeira vez: oferece o Face ID uma única vez.
+  const showOffer =
+    ready && available && !enabled && !offerAsked && !!session && !showEntry;
+  const answerOffer = async (accept: boolean) => {
+    setOfferAsked(true);
+    await AsyncStorage.setItem(OFFER_KEY, "1");
+    if (accept) {
+      const err = await setEnabled(true);
+      if (err) setMessage(err);
+    }
+  };
 
   return (
     <Ctx.Provider
@@ -243,6 +259,75 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
               </Pressable>
             </>
           ) : null}
+        </View>
+      ) : null}
+      {showOffer ? (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "flex-end" },
+          ]}
+        >
+          <View
+            style={{
+              backgroundColor: t.card,
+              borderTopLeftRadius: 22,
+              borderTopRightRadius: 22,
+              padding: 24,
+              paddingBottom: 40,
+              gap: 12,
+              alignItems: "center",
+            }}
+          >
+            <AppIcon size={56} />
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "700",
+                color: t.ink,
+                textAlign: "center",
+              }}
+            >
+              Entrar com {label}?
+            </Text>
+            <Text
+              style={{
+                fontSize: 15,
+                color: t.ink2,
+                textAlign: "center",
+                lineHeight: 21,
+              }}
+            >
+              Nas próximas vezes, você abre o Finia e entra só olhando para o
+              iPhone, como num app de banco. Dá para mudar depois em Ajustes.
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void answerOffer(true)}
+              style={{
+                height: 50,
+                alignSelf: "stretch",
+                borderRadius: 14,
+                backgroundColor: t.accent,
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: 4,
+              }}
+            >
+              <Text
+                style={{ color: t.onAccent, fontSize: 17, fontWeight: "600" }}
+              >
+                Ativar {label}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void answerOffer(false)}
+              style={{ padding: 10 }}
+            >
+              <Text style={{ color: t.accent, fontSize: 15 }}>Agora não</Text>
+            </Pressable>
+          </View>
         </View>
       ) : null}
     </Ctx.Provider>

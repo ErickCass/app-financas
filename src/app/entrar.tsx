@@ -55,11 +55,11 @@ export default function Entrar() {
         <View style={{ gap: 8, paddingTop: 40, paddingBottom: 12 }}>
           <AppIcon size={56} />
           <Text accessibilityRole="header" style={{ fontSize: 34, fontWeight: "700", color: t.ink, letterSpacing: -0.5 }}>
-            Entrar
+            Entrar ou criar conta
           </Text>
           <Text style={{ fontSize: 16, color: t.ink2, lineHeight: 22 }}>
             {step === "email"
-              ? "Informe seu e-mail. Enviamos um código de acesso; não há senha para lembrar."
+              ? "Primeira vez? É só entrar: a conta é criada na hora. Pelo e-mail enviamos um código de acesso; não há senha para lembrar."
               : `Digite o código enviado para ${email.trim()}.`}
           </Text>
         </View>
