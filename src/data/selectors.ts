@@ -6,7 +6,8 @@ import { buildCashOut } from "@/domain/cashOut";
 import { useFinance } from "./store";
 
 /** Orçamento por categoria. Padrão: gastos variáveis; passe "fixed" para as contas fixas. */
-export function useBudgetView(kind: "variable" | "fixed" | "all" = "variable") {
+/** `accountId`: só o gasto feito nessa conta ou cartão, contra o orçamento total da categoria. */
+export function useBudgetView(kind: "variable" | "fixed" | "all" = "variable", accountId?: string) {
   const f = useFinance();
   return useMemo(
     () =>
@@ -14,11 +15,11 @@ export function useBudgetView(kind: "variable" | "fixed" | "all" = "variable") {
         today: f.today,
         categories: f.categories,
         budgets: f.budgets,
-        transactions: f.transactions,
+        transactions: accountId ? f.transactions.filter((t) => t.accountId === accountId) : f.transactions,
         history: f.history,
         kinds: kind === "all" ? ["variable", "fixed"] : [kind],
       }),
-    [f.today, f.categories, f.budgets, f.transactions, f.history, kind],
+    [f.today, f.categories, f.budgets, f.transactions, f.history, kind, accountId],
   );
 }
 
@@ -60,7 +61,7 @@ export function useMonthSummary() {
 }
 
 /** O que ainda sai da conta corrente até o fim do mês, por categoria (visão de caixa). */
-export function useCashOut() {
+export function useCashOut(accountId?: string) {
   const f = useFinance();
   return useMemo(
     () =>
@@ -71,7 +72,8 @@ export function useCashOut() {
         planned: f.planned,
         budgets: f.budgets,
         categories: f.categories,
+        accountId,
       }),
-    [f.today, f.accounts, f.transactions, f.planned, f.budgets, f.categories],
+    [f.today, f.accounts, f.transactions, f.planned, f.budgets, f.categories, accountId],
   );
 }

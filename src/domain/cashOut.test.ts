@@ -63,7 +63,7 @@ describe("o que ainda sai da conta até o fim do mês", () => {
   const row = (id: string | null) => out.rows.find((r) => r.categoryId === id);
 
   it("distribui a fatura que vence no mês pelas categorias das compras", () => {
-    expect(row("merc")?.items).toEqual([{ kind: "fatura", label: "Fatura Visa", dueDate: "2026-11-10", amount: 60_000 }]);
+    expect(row("merc")?.items).toEqual([{ kind: "fatura", label: "Fatura Visa", dueDate: "2026-11-10", amount: 60_000, accountId: "visa" }]);
     expect(row("rest")?.toLeave).toBe(30_000);
   });
 
@@ -119,5 +119,32 @@ describe("previstos e faturas pagas", () => {
     const transactions = [tx({ accountId: "visa", date: "2026-10-12", amount: -95_000, categoryId: null, statementMonth: "2026-11" })];
     const out = buildCashOut({ ...base, transactions, planned: [bill] });
     expect(out.rows.find((r) => r.categoryId === null)?.toLeave).toBe(95_000);
+  });
+});
+
+describe("filtro por cartão", () => {
+  const transactions = [
+    tx({ accountId: "visa", date: "2026-10-12", amount: -60_000, categoryId: "merc", statementMonth: "2026-11" }),
+    tx({ accountId: "visa", date: "2026-11-14", amount: -40_000, categoryId: "merc", statementMonth: "2026-12" }),
+    tx({ accountId: "cc", date: "2026-11-03", amount: -15_000, categoryId: "merc" }),
+  ];
+  const planned: Planned[] = [
+    bill,
+    { id: "p", accountId: "cc", dueDate: "2026-11-20", description: "Condomínio nov", amount: -118_000, categoryId: "cond", status: "pending" },
+  ];
+
+  it("mostra só a fatura e o utilizado daquele cartão", () => {
+    const out = buildCashOut({ ...base, transactions, planned, accountId: "visa" });
+    const merc = out.rows.find((r) => r.categoryId === "merc");
+    expect(merc?.toLeave).toBe(60_000);
+    expect(merc?.used).toBe(40_000); // só a compra de novembro no Visa, não o débito
+    expect(out.rows.some((r) => r.categoryId === "cond" && r.toLeave > 0)).toBe(false);
+  });
+
+  it("na conta corrente, mostra as contas previstas pagas por ela, e não a fatura", () => {
+    const out = buildCashOut({ ...base, transactions, planned, accountId: "cc" });
+    expect(out.rows.find((r) => r.categoryId === "cond")?.toLeave).toBe(118_000);
+    expect(out.rows.every((r) => r.items.every((i) => i.kind !== "fatura"))).toBe(true);
+    expect(out.billsOther).toBe(0);
   });
 });

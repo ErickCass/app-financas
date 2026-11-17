@@ -195,7 +195,7 @@ export default function Inicio() {
         </Pressable>
       </Link>
 
-      <Link href="/saidas" asChild>
+      <Link href="/orcamento?lente=caixa" asChild>
         <Pressable accessibilityRole="link" accessibilityLabel="Até o fim do mês: o que ainda sai da conta, por categoria">
           <Card style={{ gap: 6 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>

@@ -24,6 +24,8 @@ export interface CashOutItem {
   label: string;
   /** Vencimento, quando se sabe (contas fixas sem previsto não têm data). */
   dueDate?: ISODate;
+  /** Cartão da fatura, ou conta de onde sai a conta prevista. Conta fixa estimada não tem. */
+  accountId?: string;
   amount: Cents; // positivo = sai da conta
 }
 
@@ -55,8 +57,17 @@ export function buildCashOut(params: {
   planned: Planned[];
   budgets: Budget[];
   categories: Category[];
+  /**
+   * Só o que sai por esta conta ou cartão: a fatura dele, as contas previstas
+   * pagas por ela e o utilizado nela. Contas fixas estimadas (sem conta) ficam de fora.
+   */
+  accountId?: string;
 }): CashOut {
-  const { today, accounts, transactions, planned, budgets, categories } = params;
+  const { today, accounts, budgets, categories, accountId: only } = params;
+  const transactions = only ? params.transactions.filter((t) => t.accountId === only) : params.transactions;
+  const planned = only
+    ? params.planned.filter((p) => (p.creditCardStatement ? p.creditCardStatement.accountId === only : p.accountId === only))
+    : params.planned;
   const month = monthOf(today);
   const inMonth = (d: ISODate) => monthOf(d) === month;
   const pending = planned.filter((p) => p.status !== "paid" && inMonth(p.dueDate));
@@ -92,7 +103,7 @@ export function buildCashOut(params: {
     let composed = 0;
     for (const [categoryId, amount] of byCategory) {
       if (amount <= 0) continue; // categoria só com estornos: não vira saída
-      add(categoryId, { kind: "fatura", label, dueDate: bill.dueDate, amount });
+      add(categoryId, { kind: "fatura", label, dueDate: bill.dueDate, amount, accountId });
       composed += amount;
     }
     // O que a fatura cobra além das compras (saldo anterior, juros) também sai.
@@ -101,11 +112,11 @@ export function buildCashOut(params: {
 
   // 2. Contas a pagar previstas (avulsas ou mensais) do mês.
   for (const p of pending.filter((p) => !p.creditCardStatement && p.amount < 0)) {
-    add(p.categoryId, { kind: "prevista", label: p.description, dueDate: p.dueDate, amount: -p.amount });
+    add(p.categoryId, { kind: "prevista", label: p.description, dueDate: p.dueDate, amount: -p.amount, accountId: p.accountId });
   }
 
   // 3. Contas fixas com valor previsto que ainda não foram pagas nem estão previstas.
-  for (const c of categories.filter((c) => c.kind === "fixed")) {
+  for (const c of only ? [] : categories.filter((c) => c.kind === "fixed")) {
     const expected = budgets.find((b) => b.categoryId === c.id && b.month === month)?.limit ?? 0;
     const spent = categorySpent(transactions, c.id, month);
     const alreadyPlanned = pending
