@@ -43,6 +43,8 @@ interface FaceLogin {
   label: string;
   /** Liga ou desliga. Ligar pede a biometria antes, para confirmar que funciona. Devolve um erro, se houver. */
   setEnabled: (on: boolean) => Promise<string | null>;
+  /** "Sair" com Face ID ligado: volta para a tela de entrada sem apagar a sessão. */
+  lockNow: () => void;
 }
 
 const Ctx = createContext<FaceLogin>({
@@ -50,6 +52,7 @@ const Ctx = createContext<FaceLogin>({
   enabled: false,
   label: "biometria",
   setEnabled: async () => null,
+  lockNow: () => {},
 });
 export const useAppLock = () => useContext(Ctx);
 
@@ -162,7 +165,15 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <Ctx.Provider value={{ available, enabled, label, setEnabled }}>
+    <Ctx.Provider
+      value={{
+        available,
+        enabled,
+        label,
+        setEnabled,
+        lockNow: () => setMustEnter(true),
+      }}
+    >
       {children}
       {showEntry ? (
         <View

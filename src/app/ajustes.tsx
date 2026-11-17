@@ -219,7 +219,16 @@ export default function Ajustes() {
         </Link>
         <Pressable
           accessibilityRole="button"
-          onPress={() => void auth.signOut().finally(() => router.replace("/entrar"))}
+          onPress={() => {
+            // Com Face ID ligado, sair é como num app de banco: volta para "Entrar com Face ID".
+            // Trocar de conta de verdade: "Entrar com outra conta", nessa mesma tela.
+            if (lock.enabled && !f.isDemo) {
+              router.replace("/");
+              lock.lockNow();
+              return;
+            }
+            void auth.signOut().finally(() => router.replace("/entrar"));
+          }}
           style={{ height: 48, justifyContent: "center" }}
         >
           <Text style={{ fontSize: 16, color: t.neg }}>{f.isDemo ? "Sair da demonstração" : "Sair"}</Text>
